@@ -1,5 +1,5 @@
 /* =========================================================
-   HYDRA - UI COMPONENTS (BENTO-GRID & THEME INTEGRATION)
+   HYDRA - UI COMPONENTS (CLEAN BENTO DESIGN)
 ========================================================= */
 
 /* ---------- TOP BAR ---------- */
@@ -8,8 +8,8 @@ function renderTopbar() {
   const isLight = state.theme === 'light';
 
   const themeIcon = isLight
-    ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>` // Moon icon for switching to dark
-    : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`; // Sun icon for switching to light
+    ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`
+    : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
 
   return `
   <div class="topbar">
@@ -19,24 +19,24 @@ function renderTopbar() {
       </div>
       <div class="brand-text">
         <span class="brand-name">HYDRA</span>
-        <span class="brand-sub">Mission Ops</span>
+        <span class="brand-sub">Mission Operations</span>
       </div>
     </div>
 
-    <!-- Center Navigation Pill (Reference Style) -->
+    <!-- Center Navigation Pill -->
     <div class="mode-switch" role="group" aria-label="Operating mode">
       <button data-action="set-mode" data-mode="simulation" class="${simActive ? 'active' : ''}">
-        <span class="dot"></span>Simulation
+        Simulation
       </button>
       <button data-action="set-mode" data-mode="live" class="${!simActive ? 'live-active' : ''}">
-        <span class="dot"></span>Live Feeds
+        Live Feeds
       </button>
     </div>
 
     <!-- Right Controls: Clock & Single-Click Theme Switcher -->
     <div class="topbar-right">
       <div class="topbar-clock">
-        <span>TIME</span>
+        <span class="tc-lbl">TIME</span>
         <b id="clockVal">${fmtTime(new Date())}</b>
       </div>
       <button class="theme-toggle-btn" data-action="toggle-theme" title="Switch to ${isLight ? 'Dark' : 'Light'} Mode" aria-label="Toggle Theme">
@@ -46,26 +46,43 @@ function renderTopbar() {
   </div>`;
 }
 
-/* ---------- STATUS BAR ---------- */
+/* ---------- STATUS BAR (CLEAN & NON-BLINKING) ---------- */
 function renderStatusbar() {
   const activeHazards = hazards.filter(h => h.status === 'Active').length;
   const deployedRovers = rovers.filter(r => r.status === 'Deployed' || r.status === 'On Site').length;
   const connectedUnits = rovers.filter(r => r.connection !== 'none').length;
   
   const apiConnected = HYDRA_API.status.usgs === 'connected' || HYDRA_API.status.nasa === 'connected';
-  const apiStatusClass = apiConnected ? 'ok' : HYDRA_API.status.usgs === 'error' ? 'warn' : 'ok';
   const apiText = apiConnected ? 'Live Feeds Active' : 'Operational';
 
   return `
   <div class="statusbar">
     <div class="stat-group">
-      <div class="stat"><span class="stat-dot ${apiStatusClass}"></span>Data Uplink <b>${apiText}</b></div>
-      <div class="stat"><span class="stat-dot ${activeHazards ? 'warn' : 'ok'}"></span>Active Hazards <b>${activeHazards}</b></div>
-      <div class="stat"><span class="stat-dot ok"></span>Deployed Units <b>${deployedRovers}</b></div>
-      <div class="stat"><span class="stat-dot ${connectedUnits ? 'ok' : 'off'}"></span>Fleet Link <b>${connectedUnits} / ${rovers.length}</b></div>
+      <div class="stat"><span class="stat-lbl">Data Uplink</span><b>${apiText}</b></div>
+      <div class="stat-divider"></div>
+      <div class="stat"><span class="stat-lbl">Active Hazards</span><b>${activeHazards}</b></div>
+      <div class="stat-divider"></div>
+      <div class="stat"><span class="stat-lbl">Deployed Units</span><b>${deployedRovers}</b></div>
+      <div class="stat-divider"></div>
+      <div class="stat"><span class="stat-lbl">Fleet Link</span><b>${connectedUnits} / ${rovers.length}</b></div>
     </div>
-    <div class="stat"><span class="stat-dot ok"></span>Last Sync <b id="lastUpdateVal">${fmtTime(state.lastUpdate)}</b></div>
+    <div class="stat"><span class="stat-lbl">Last Sync</span><b id="lastUpdateVal">${fmtTime(state.lastUpdate)}</b></div>
   </div>`;
+}
+
+/* ---------- BESPOKE ROVER BADGE HELPER ---------- */
+function renderRoverBadge(status) {
+  switch (status) {
+    case 'Ready':
+      return `<span class="rover-badge badge-ready"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Ready</span>`;
+    case 'Deployed':
+    case 'On Site':
+      return `<span class="rover-badge badge-deployed"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg> Deployed</span>`;
+    case 'Returning':
+      return `<span class="rover-badge badge-returning"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 14L4 9l5-5"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg> Returning</span>`;
+    default:
+      return `<span class="rover-badge badge-offline">${status}</span>`;
+  }
 }
 
 /* ---------- ROVER PANEL (FLEET BENTO TILES) ---------- */
@@ -84,16 +101,17 @@ function renderRoverPanel() {
           <span class="rover-type-icon">${typeIcon(r.type)}</span>
           <span class="rover-name">${r.name}</span>
         </div>
-        <span class="rover-badge ${badgeClass(r.status)}">${r.status}</span>
+        ${renderRoverBadge(r.status)}
       </div>
       <div class="rover-meta">${r.task}</div>
       <div class="rover-stats">
-        <div class="rover-stat">BATT
+        <div class="rover-stat">
+          <span class="stat-sub">BATT</span>
           <span class="batt-track"><span class="batt-fill ${battClass(r.battery)}" style="width:${r.battery}%"></span></span>
-          ${r.battery}%
+          <span style="font-weight:600;">${r.battery}%</span>
         </div>
-        ${isDeployed ? `<div class="rover-stat" style="color:var(--accent-cyan);font-weight:700;">${telem.speed.toFixed(0)} km/h</div>` : ''}
-        ${isDeployed ? `<div class="rover-stat" style="color:var(--accent-amber);font-weight:700;">ETA ${etaText}</div>` : ''}
+        ${isDeployed ? `<div class="rover-stat" style="color:var(--accent-cyan);font-weight:600;">${telem.speed.toFixed(0)} km/h</div>` : ''}
+        ${isDeployed ? `<div class="rover-stat" style="color:var(--accent-amber);font-weight:600;">ETA ${etaText}</div>` : ''}
         <div class="rover-stat">${connPips(r.connection)}</div>
       </div>
       ${isDeployed ? `<div class="rover-actions">
@@ -112,37 +130,31 @@ function renderRoverPanel() {
   </div>`;
 }
 
-function disconnectedCard(title, sub) {
-  return `<div class="disconnected-card">
-    <div class="dc-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 1l22 22M9 9a4 4 0 0 1 5.66 5.66M4.7 4.7A10 10 0 0 0 2 12M22 12a10 10 0 0 0-2.7-6.8" stroke-linecap="round"/></svg></div>
-    <div><div class="dc-title">${title}</div><div class="dc-sub">${sub}</div></div>
-    <button class="dc-btn" disabled>Configure</button>
-  </div>`;
-}
-
 /* ---------- HAZARD PANEL (INCIDENT BENTO TILES) ---------- */
 function renderHazardPanel() {
   const rows = hazards.map(h => {
     const selected = state.selectedHazardId === h.id;
     const assigned = rovers.filter(r => r.hazardId === h.id);
     const availableCount = rovers.filter(r => r.status === 'Ready').length;
-    const sourceTag = h.source ? `<span style="font-size:9px;color:var(--accent-cyan);font-weight:700;margin-left:5px;border:1px solid var(--accent-cyan-dim);padding:1px 5px;border-radius:var(--radius-pill);">${h.source}</span>` : '';
+    const sourceTag = h.source ? `<span class="source-tag">${h.source}</span>` : '';
     
     return `
     <div class="hazard-card ${selected ? 'selected' : ''}">
       <div class="hazard-head" data-action="select-hazard" data-id="${h.id}">
         <div class="hazard-top">
           <div class="hazard-id">
-            <span class="hazard-sev-dot ${sevClass(h.severity)}"></span>
             <div style="min-width:0;">
               <div class="hazard-name">${h.name} ${sourceTag}</div>
               <div class="hazard-type">${h.type} ${h.magnitude ? `&middot; ${h.magnitude}` : ''}</div>
             </div>
           </div>
-          <span class="hazard-status-pill ${statusPillClass(h.status)}">${h.status}</span>
+          <div class="hazard-badge-row">
+            <span class="hazard-sev-badge sev-${h.severity}">${h.severity.toUpperCase()}</span>
+            <span class="hazard-status-pill ${statusPillClass(h.status)}">${h.status}</span>
+          </div>
         </div>
         <div class="hazard-loc">${h.location}</div>
-        <div class="hazard-time">DETECTED ${h.detected} &middot; SEV ${h.severity.toUpperCase()}</div>
+        <div class="hazard-time">DETECTED ${h.detected}</div>
       </div>
       ${selected ? `
       <div class="hazard-detail">
