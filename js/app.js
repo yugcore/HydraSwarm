@@ -5,6 +5,8 @@
 const state = {
   theme: (typeof localStorage !== 'undefined' && localStorage.getItem('hydra_theme')) || 'dark', // 'dark' | 'light'
   mode: 'simulation', // 'simulation' | 'live'
+  selectedStationId: 'guwahati',
+  stationModalOpen: false,
   activeTargetId: 'ALL', // 'ALL' | hazardId
   selectedHazardId: null,
   selectedRoverId: null,
@@ -49,6 +51,7 @@ function render() {
     </div>
     ${renderDeployModal()}
     ${typeof renderEsp32Modal === 'function' ? renderEsp32Modal() : ''}
+    ${typeof renderStationModal === 'function' ? renderStationModal() : ''}
   `;
   if (state.liveFeedRoverId) {
     startFeedAnim();
@@ -60,8 +63,20 @@ function render() {
 ========================================================= */
 async function syncLiveHazards() {
   if (state.isSyncing) return;
+
+  // In SIMULATION mode, always keep the active station's authentic local disaster hazards
+  if (state.mode === 'simulation') {
+    const activeStation = (typeof getStationById === 'function')
+      ? getStationById(state.selectedStationId || currentStationId || 'guwahati')
+      : HYDRA_STATIONS[0];
+    hazards = [...activeStation.hazards];
+    state.lastUpdate = new Date();
+    render();
+    return;
+  }
+
   state.isSyncing = true;
-  console.log('[HYDRA] Syncing live hazards from USGS, NASA EONET & NOAA...');
+  console.log('[HYDRA] Syncing live regional hazards from USGS India & Open-Meteo...');
   
   try {
     const liveData = await HYDRA_API.fetchAllLiveHazards();
@@ -121,6 +136,11 @@ document.addEventListener('click', (e) => {
   const overlayClose = e.target.closest('[data-action="overlay-close"]');
   const stopEl = e.target.closest('[data-stop]');
   if (overlayClose && !stopEl) {
+    if (state.stationModalOpen) {
+      state.stationModalOpen = false;
+      render();
+      return;
+    }
     if (state.esp32ModalOpen) {
       state.esp32ModalOpen = false;
       render();
@@ -136,6 +156,21 @@ document.addEventListener('click', (e) => {
   const id = t.dataset.id;
 
   switch (action) {
+    case 'open-station-modal':
+      state.stationModalOpen = true;
+      render();
+      break;
+    case 'close-station-modal':
+      state.stationModalOpen = false;
+      render();
+      break;
+    case 'select-station':
+      if (typeof switchHydraStation === 'function') {
+        switchHydraStation(id);
+      }
+      state.stationModalOpen = false;
+      render();
+      break;
     case 'set-mode':
       state.mode = t.dataset.mode;
       state.selectedHazardId = null;
@@ -349,13 +384,14 @@ setInterval(() => {
     if (hasMovingRovers) {
       const mapWrap = document.querySelector('.map-wrap');
       if (mapWrap) {
-        // Smoothly update SVG inner contents without destroying SVG root
+        // Robust SVG map update without XML parserentity errors
         const svgEl = document.querySelector('.map-svg');
         if (svgEl) {
-          const newSvgHtml = renderMapSvg();
-          const parsed = new DOMParser().parseFromString(newSvgHtml, 'image/svg+xml').documentElement;
-          if (parsed && parsed.innerHTML) {
-            svgEl.innerHTML = parsed.innerHTML;
+          const temp = document.createElement('div');
+          temp.innerHTML = renderMapSvg();
+          const newSvg = temp.firstElementChild;
+          if (newSvg) {
+            svgEl.replaceWith(newSvg);
           }
         }
 
@@ -364,8 +400,11 @@ setInterval(() => {
         const newHudHtml = renderTargetHudOverlay();
         if (hudEl) {
           if (newHudHtml) {
-            const parsedHud = new DOMParser().parseFromString(newHudHtml, 'text/html').body.firstElementChild;
-            if (parsedHud) hudEl.innerHTML = parsedHud.innerHTML;
+            const tempHud = document.createElement('div');
+            tempHud.innerHTML = newHudHtml;
+            if (tempHud.firstElementChild) {
+              hudEl.replaceWith(tempHud.firstElementChild);
+            }
           } else {
             hudEl.remove();
           }
@@ -409,8 +448,13 @@ function init() {
   if (typeof HYDRA_ESP32 !== 'undefined' && HYDRA_ESP32.loadSavedDevices) {
     HYDRA_ESP32.loadSavedDevices();
   }
+  if (typeof switchHydraStation === 'function') {
+    switchHydraStation(state.selectedStationId || 'guwahati');
+  }
   render();
-  syncLiveHazards();
+  if (state.mode === 'live') {
+    syncLiveHazards();
+  }
 }
 
 document.addEventListener('DOMContentLoaded', init);

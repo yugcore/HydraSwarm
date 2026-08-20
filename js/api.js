@@ -4,9 +4,9 @@
 
 const HYDRA_API = {
   endpoints: {
-    usgsEarthquakes: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson',
-    nasaEonet: 'https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=40',
-    noaaAlerts: 'https://api.weather.gov/alerts/active?status=actual&message_type=alert&limit=30',
+    usgsEarthquakes: 'https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&minmagnitude=2.5&minlatitude=6&maxlatitude=38&minlongitude=68&maxlongitude=98',
+    usgsGlobal: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson',
+    nasaEonet: 'https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=30',
     openMeteo: 'https://api.open-meteo.com/v1/forecast',
     localBackend: (typeof window !== 'undefined' && window.location.origin && window.location.origin.startsWith('http'))
       ? `${window.location.origin}/api`
@@ -199,20 +199,55 @@ const HYDRA_API = {
     }
   },
 
-  /* ---------- AGGREGATE ALL LIVE HAZARDS ---------- */
+  /* ---------- AGGREGATE ALL LIVE HAZARDS (INDIA & GLOBAL SATELLITE) ---------- */
   async fetchAllLiveHazards() {
+    const activeStation = (typeof getStationById === 'function')
+      ? getStationById(typeof state !== 'undefined' ? state.selectedStationId : currentStationId)
+      : null;
+
+    let stationWeatherHazards = [];
+    if (activeStation && activeStation.lat) {
+      try {
+        const url = `${this.endpoints.openMeteo}?latitude=${activeStation.lat}&longitude=${activeStation.lon}&current=temperature_2m,relative_humidity_2m,rain,showers,weather_code,wind_speed_10m,wind_gusts_10m&hourly=precipitation,rain&forecast_days=1`;
+        const res = await fetch(url).catch(() => null);
+        if (res && res.ok) {
+          const data = await res.json();
+          const curr = data.current || {};
+          const isHeavyRain = (curr.rain > 5 || curr.showers > 5);
+          const isHighWind = curr.wind_gusts_10m > 40;
+
+          if (isHeavyRain || isHighWind || curr.rain > 0.5) {
+            stationWeatherHazards.push({
+              id: `LIVE-WX-${activeStation.id.toUpperCase()}`,
+              type: isHeavyRain ? 'Flood' : isHighWind ? 'Cyclone' : 'Flood',
+              name: isHeavyRain ? `${activeStation.shortName} Monsoonal Heavy Precipitation Alert` : `${activeStation.shortName} High Velocity Gust Watch`,
+              location: `${activeStation.name}, ${activeStation.state}`,
+              detected: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
+              severity: isHeavyRain ? 'severe' : 'moderate',
+              status: 'Active',
+              lat: activeStation.lat,
+              lon: activeStation.lon,
+              source: 'Open-Meteo / IMD',
+              x: 480,
+              y: 280
+            });
+          }
+        }
+      } catch (e) {}
+    }
+
     const [quakes, nasaEvents, noaaAlerts] = await Promise.all([
       this.fetchEarthquakes(),
       this.fetchNasaEonet(),
       this.fetchNoaaAlerts()
     ]);
 
-    const combined = [...quakes, ...nasaEvents, ...noaaAlerts];
+    const combined = [...stationWeatherHazards, ...quakes, ...nasaEvents, ...noaaAlerts];
     this.status.lastSync = new Date();
 
     if (combined.length === 0) {
-      console.info('[HYDRA API] Fallback to default operational dataset.');
-      return fallbackHazards;
+      console.info('[HYDRA API] Fallback to station operational dataset.');
+      return (activeStation && activeStation.hazards) ? activeStation.hazards : fallbackHazards;
     }
 
     // Sort by severity (severe first) then active status

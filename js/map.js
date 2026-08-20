@@ -6,6 +6,11 @@
 let viewBoxAnimationId = null;
 let currentViewBox = { x: 0, y: 0, w: 1000, h: 640 };
 
+function resetMapViewBox() {
+  if (viewBoxAnimationId) cancelAnimationFrame(viewBoxAnimationId);
+  currentViewBox = { x: 0, y: 0, w: 1000, h: 640 };
+}
+
 function getActiveTargets() {
   const deployedHazardIds = new Set();
   rovers.forEach(r => {
@@ -31,14 +36,17 @@ function getTargetEnvelope(hazardId) {
 
   assignedRovers.forEach(r => {
     const telem = HYDRA_TELEMETRY.getRoverTelemetry(r.id);
-    pts.push({ x: telem.x, y: telem.y });
+    if (telem) pts.push({ x: telem.x, y: telem.y });
     if (r.home) pts.push({ x: r.home.x, y: r.home.y });
   });
 
-  let minX = Math.min(...pts.map(p => p.x));
-  let maxX = Math.max(...pts.map(p => p.x));
-  let minY = Math.min(...pts.map(p => p.y));
-  let maxY = Math.max(...pts.map(p => p.y));
+  const validPts = pts.filter(p => p && typeof p.x === 'number' && isFinite(p.x) && typeof p.y === 'number' && isFinite(p.y));
+  if (validPts.length === 0) return { x: 0, y: 0, w: 1000, h: 640 };
+
+  let minX = Math.min(...validPts.map(p => p.x));
+  let maxX = Math.max(...validPts.map(p => p.x));
+  let minY = Math.min(...validPts.map(p => p.y));
+  let maxY = Math.max(...validPts.map(p => p.y));
 
   // Add comfortable tactical padding
   const padX = 75;
@@ -270,6 +278,10 @@ function renderMapSvg() {
     </g>`;
   }).join('');
 
+  const activeStation = (typeof getStationById === 'function') 
+    ? getStationById(state.selectedStationId || currentStationId || 'guwahati')
+    : HYDRA_STATIONS[0];
+
   const vb = currentViewBox;
 
   const mapBgStart = isLight ? '#f8fafc' : '#0e121a';
@@ -280,6 +292,28 @@ function renderMapSvg() {
   const depotStroke = isLight ? '#94a3b8' : 'var(--border-card)';
   const depotTextColor = isLight ? '#64748b' : 'var(--text-3)';
 
+  // Dynamic terrain paths from active station
+  const terrainPathsSvg = (activeStation.mapFeatures?.terrainPaths || []).map(d => 
+    `<path class="terrain-line" stroke="${terrainStroke}" d="${d}"></path>`
+  ).join('');
+
+  // Dynamic landmark labels from active station
+  const landmarksSvg = (activeStation.mapFeatures?.landmarks || []).map(lm => `
+    <g class="map-landmark" transform="translate(${lm.x},${lm.y})" opacity="0.6">
+      <circle r="2.8" fill="var(--text-3)"></circle>
+      <text x="7" y="3" font-size="8px" font-weight="600" fill="var(--text-3)" letter-spacing="0.5px">${lm.name.toUpperCase()}</text>
+    </g>
+  `).join('');
+
+  // Dynamic depot markers from active station
+  const depotsSvg = (activeStation.depots || []).map(dp => `
+    <g class="map-depot-marker" transform="translate(${dp.x},${dp.y})" opacity="0.85">
+      <rect x="-8" y="-8" width="16" height="16" rx="4" fill="${depotFill}" stroke="${depotStroke}" stroke-width="1.3"></rect>
+      <circle r="3.2" fill="var(--accent-amber)"></circle>
+      <text x="12" y="3.5" class="marker-label" fill="${depotTextColor}" font-weight="700">${dp.name.toUpperCase()}</text>
+    </g>
+  `).join('');
+
   return `
   <svg class="map-svg" viewBox="${vb.x} ${vb.y} ${vb.w} ${vb.h}" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Operations map">
     <defs>
@@ -289,24 +323,16 @@ function renderMapSvg() {
       </linearGradient>
     </defs>
     <rect x="0" y="0" width="1000" height="640" fill="url(#bgGrad)"></rect>
-    <!-- coastline -->
-    <path class="coast-fill" fill="${coastFill}" d="M0,0 L1000,0 L1000,470 C900,440 860,500 800,470 C740,440 700,480 640,460 C560,430 520,470 460,440 C380,400 340,430 260,400 C160,360 100,400 0,370 Z"></path>
-    <!-- contour lines -->
-    <path class="terrain-line" stroke="${terrainStroke}" d="M60,80 C220,40 380,120 520,70 C660,20 800,90 960,60"></path>
-    <path class="terrain-line" stroke="${terrainStroke}" d="M40,150 C200,110 360,190 520,140 C680,90 820,160 980,130"></path>
-    <path class="terrain-line" stroke="${terrainStroke}" d="M20,220 C200,180 380,260 560,210 C720,170 860,230 990,200"></path>
-    <path class="terrain-line" stroke="${terrainStroke}" d="M10,290 C220,250 400,330 600,280 C760,240 880,300 990,270"></path>
-    <path class="terrain-line" stroke="${terrainStroke}" d="M470,60 C480,140 440,220 470,300 C500,380 460,440 480,520"></path>
-    <path class="terrain-line" stroke="${terrainStroke}" d="M600,40 C610,140 570,240 600,320"></path>
-    <path class="terrain-line" stroke="${terrainStroke}" d="M0,480 C120,460 200,510 320,490 C440,470 520,510 640,495 C760,480 880,510 1000,490" opacity="0.6"></path>
-    <path class="terrain-line" stroke="${terrainStroke}" d="M0,540 C140,520 260,560 400,545 C540,530 660,560 800,548 C880,542 940,555 1000,548" opacity="0.5"></path>
-    <!-- depot markers -->
-    <g opacity="0.75">
-      <rect x="80" y="580" width="16" height="16" rx="4" fill="${depotFill}" stroke="${depotStroke}" stroke-width="1.2"></rect>
-      <text x="102" y="591" class="marker-label" fill="${depotTextColor}">WEST DEPOT (HQ)</text>
-      <rect x="200" y="545" width="16" height="16" rx="4" fill="${depotFill}" stroke="${depotStroke}" stroke-width="1.2"></rect>
-      <text x="222" y="556" class="marker-label" fill="${depotTextColor}">EAST DEPOT</text>
-    </g>
+    <!-- Dynamic Coastline or River Channel for current station -->
+    <path class="coast-fill" fill="${coastFill}" d="${activeStation.mapFeatures?.coastOrRiverD || 'M0,0 L1000,0 L1000,470 Z'}"></path>
+    <!-- Station river/coastline label -->
+    <text x="30" y="35" font-size="10px" font-weight="700" fill="var(--text-3)" letter-spacing="1px" opacity="0.55">${(activeStation.mapFeatures?.riverName || activeStation.region).toUpperCase()}</text>
+    <!-- Dynamic contour lines -->
+    ${terrainPathsSvg}
+    <!-- Dynamic landmarks -->
+    ${landmarksSvg}
+    <!-- Dynamic depot markers -->
+    ${depotsSvg}
     ${routes}
     ${hazardMarkers}
     ${roverMarkers}
@@ -353,7 +379,12 @@ function renderRoverInfoPanel() {
 /* ---------- ROOT MAP CONTAINER ---------- */
 function renderMap() {
   const isLive = state.mode === 'live';
-  const chipLabel = isLive ? 'Live Global Satellite & Seismic Feeds' : 'Sim Region &middot; Coastal &amp; Mountain Basin';
+  const activeStation = (typeof getStationById === 'function')
+    ? getStationById(state.selectedStationId || currentStationId || 'guwahati')
+    : HYDRA_STATIONS[0];
+  const chipLabel = isLive 
+    ? `Live Disaster Feeds &middot; ${activeStation.state}` 
+    : `${activeStation.shortName} &middot; ${activeStation.region}`;
 
   return `
   <div class="map-wrap">

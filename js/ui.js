@@ -6,6 +6,9 @@
 function renderTopbar() {
   const simActive = state.mode === 'simulation';
   const isLight = state.theme === 'light';
+  const activeStation = (typeof getStationById === 'function')
+    ? getStationById(state.selectedStationId || currentStationId || 'guwahati')
+    : HYDRA_STATIONS[0];
 
   const themeIcon = isLight
     ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`
@@ -23,14 +26,23 @@ function renderTopbar() {
       </div>
     </div>
 
-    <!-- Center Navigation Pill -->
-    <div class="mode-switch" role="group" aria-label="Operating mode">
-      <button data-action="set-mode" data-mode="simulation" class="${simActive ? 'active' : ''}">
-        Simulation
+    <!-- Center Section: Station Selector & Sim/Live Switcher -->
+    <div class="topbar-center-group">
+      <button class="station-pill-btn" data-action="open-station-modal" title="Switch Command Station (Guwahati, Chennai, Kedarnath, Mumbai, Puri, Wayanad...)">
+        <span class="pin-dot"></span>
+        <span class="station-pill-text">${activeStation.shortName}</span>
+        <span class="station-pill-badge ${activeStation.badgeClass}">${activeStation.riskLevel}</span>
+        <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity:0.6;"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
-      <button data-action="set-mode" data-mode="live" class="${!simActive ? 'live-active' : ''}">
-        Live Feeds
-      </button>
+
+      <div class="mode-switch" role="group" aria-label="Operating mode">
+        <button data-action="set-mode" data-mode="simulation" class="${simActive ? 'active' : ''}">
+          Simulation
+        </button>
+        <button data-action="set-mode" data-mode="live" class="${!simActive ? 'live-active' : ''}">
+          Live Feeds
+        </button>
+      </div>
     </div>
 
     <!-- Right Controls: Clock & Single-Click Theme Switcher -->
@@ -90,6 +102,9 @@ function renderRoverBadge(status) {
 /* ---------- ROVER PANEL (FLEET BENTO TILES) ---------- */
 function renderRoverPanel() {
   const isLive = state.mode === 'live';
+  const activeStation = (typeof getStationById === 'function')
+    ? getStationById(state.selectedStationId || currentStationId || 'guwahati')
+    : HYDRA_STATIONS[0];
   const fleetRovers = isLive ? rovers.filter(r => r.isEsp32) : rovers;
   const espConnectedCount = rovers.filter(r => r.isEsp32).length;
 
@@ -162,7 +177,7 @@ function renderRoverPanel() {
   <div class="col col-left">
     <div class="col-header">
       <div class="col-header-title-group">
-        <span class="col-title">${isLive ? 'Live Scout Fleet' : 'Scout Rovers'}</span>
+        <span class="col-title">${isLive ? 'Live Scout Fleet' : `${activeStation.shortName} Fleet`}</span>
         <button class="wifi-connect-btn" data-action="open-esp32-modal" title="Connect ESP32 WiFi Rover / Drone (ESP32-CAM, ESP32-S3, IoT)">
           <svg class="wifi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
             <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
@@ -182,6 +197,10 @@ function renderRoverPanel() {
 
 /* ---------- HAZARD PANEL (INCIDENT BENTO TILES) ---------- */
 function renderHazardPanel() {
+  const activeStation = (typeof getStationById === 'function')
+    ? getStationById(state.selectedStationId || currentStationId || 'guwahati')
+    : HYDRA_STATIONS[0];
+
   const rows = hazards.map(h => {
     const selected = state.selectedHazardId === h.id;
     const assigned = rovers.filter(r => r.hazardId === h.id);
@@ -235,9 +254,9 @@ function renderHazardPanel() {
   return `
   <div class="col col-right">
     <div class="col-header">
-      <span class="col-title">Natural Hazards</span>
+      <span class="col-title">Hazards &middot; ${activeStation.state}</span>
       <div style="display:flex;align-items:center;gap:6px;">
-        <button class="link-btn" data-action="sync-hazards" style="font-size:10px;font-weight:700;padding:2px 8px;border:1px solid var(--border-card);border-radius:var(--radius-pill);color:var(--accent-cyan);" title="Fetch latest USGS, NASA & NOAA feeds">&#x21bb; Sync</button>
+        <button class="link-btn" data-action="sync-hazards" style="font-size:10px;font-weight:700;padding:2px 8px;border:1px solid var(--border-card);border-radius:var(--radius-pill);color:var(--accent-cyan);" title="Fetch latest regional alerts">&#x21bb; Sync</button>
         <span class="col-count">${hazards.length}</span>
       </div>
     </div>
@@ -564,6 +583,82 @@ function renderEsp32Modal() {
             </button>
           ` : ``}
         </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ---------- STATION SWITCHER MODAL (10 DISASTER STATIONS IN INDIA) ---------- */
+function renderStationModal() {
+  if (!state.stationModalOpen) {
+    return `<div class="modal-overlay" id="stationModalOverlay"></div>`;
+  }
+
+  const currentId = state.selectedStationId || currentStationId || 'guwahati';
+
+  const stationCards = HYDRA_STATIONS.map((s, idx) => {
+    const isSelected = s.id === currentId;
+    const threatsHtml = s.threats.map(t => `<span class="st-threat-tag">${t}</span>`).join('');
+
+    return `
+    <div class="station-card ${isSelected ? 'selected' : ''}" data-action="select-station" data-id="${s.id}">
+      <div class="st-top">
+        <div class="st-num">#${idx + 1 < 10 ? '0' + (idx + 1) : idx + 1}</div>
+        <div class="st-title-group">
+          <div class="st-name">${s.name}</div>
+          <div class="st-sub">${s.state} &middot; <span style="color:var(--text-3);">${s.region}</span></div>
+        </div>
+        <div class="st-badges">
+          <span class="st-risk-pill ${s.badgeClass}">${s.riskLevel}</span>
+        </div>
+      </div>
+      <div class="st-desc">${s.description}</div>
+      <div class="st-threats">${threatsHtml}</div>
+      <div class="st-foot">
+        <div class="st-stats">
+          <span><b>${s.rovers.length}</b> Robotic Fleet Units</span>
+          &middot;
+          <span><b>${s.hazards.length}</b> Active Hazard Zones</span>
+        </div>
+        <button class="btn ${isSelected ? 'btn-primary' : 'btn-secondary'} btn-sm" data-action="select-station" data-id="${s.id}">
+          ${isSelected ? '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Current Station' : 'Deploy Here &rarr;'}
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="modal-overlay show" id="stationModalOverlay" data-action="overlay-close">
+    <div class="modal station-modal" data-stop="1">
+      <div class="modal-header">
+        <div class="mh-top-row">
+          <div class="mh-icon-title">
+            <div class="wifi-modal-icon" style="color:var(--accent-amber);border-color:rgba(245,158,11,0.3);background:rgba(245,158,11,0.1);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+            </div>
+            <div>
+              <div class="mh-title">HYDRA Disaster Response Command Stations</div>
+              <div class="mh-sub">Select an operational command center across high-vulnerability disaster corridors in India</div>
+            </div>
+          </div>
+          <button class="modal-close-btn" data-action="close-station-modal" aria-label="Close modal">&times;</button>
+        </div>
+      </div>
+
+      <div class="modal-body station-modal-body">
+        <div class="station-grid">
+          ${stationCards}
+        </div>
+      </div>
+
+      <div class="modal-footer" style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-size:11px;color:var(--text-2);">
+          Each station maintains a distinct drone &amp; rover squadron calibrated for localized mountain, coastal, or river delta terrain.
+        </div>
+        <button class="btn" data-action="close-station-modal">Close</button>
       </div>
     </div>
   </div>`;
