@@ -48,23 +48,25 @@ function renderTopbar() {
 
 /* ---------- STATUS BAR (CLEAN & NON-BLINKING) ---------- */
 function renderStatusbar() {
+  const isLive = state.mode === 'live';
+  const fleetRovers = isLive ? rovers.filter(r => r.isEsp32) : rovers;
   const activeHazards = hazards.filter(h => h.status === 'Active').length;
-  const deployedRovers = rovers.filter(r => r.status === 'Deployed' || r.status === 'On Site').length;
-  const connectedUnits = rovers.filter(r => r.connection !== 'none').length;
+  const deployedRovers = fleetRovers.filter(r => r.status === 'Deployed' || r.status === 'On Site').length;
+  const connectedUnits = fleetRovers.filter(r => r.connection !== 'none').length;
   
   const apiConnected = HYDRA_API.status.usgs === 'connected' || HYDRA_API.status.nasa === 'connected';
-  const apiText = apiConnected ? 'Live Feeds Active' : 'Operational';
+  const apiText = isLive ? (apiConnected ? 'USGS & NASA Feeds Live' : 'Live Feeds Operational') : 'Simulation Engine Active';
 
   return `
   <div class="statusbar">
     <div class="stat-group">
       <div class="stat"><span class="stat-lbl">Data Uplink</span><b>${apiText}</b></div>
       <div class="stat-divider"></div>
-      <div class="stat"><span class="stat-lbl">Active Hazards</span><b>${activeHazards}</b></div>
+      <div class="stat"><span class="stat-lbl">Real Hazards</span><b>${activeHazards}</b></div>
       <div class="stat-divider"></div>
-      <div class="stat"><span class="stat-lbl">Deployed Units</span><b>${deployedRovers}</b></div>
+      <div class="stat"><span class="stat-lbl">${isLive ? 'Live Units' : 'Deployed Units'}</span><b>${deployedRovers}</b></div>
       <div class="stat-divider"></div>
-      <div class="stat"><span class="stat-lbl">Fleet Link</span><b>${connectedUnits} / ${rovers.length}</b></div>
+      <div class="stat"><span class="stat-lbl">${isLive ? 'WiFi Hardware' : 'Fleet Link'}</span><b>${connectedUnits} / ${fleetRovers.length}</b></div>
     </div>
     <div class="stat"><span class="stat-lbl">Last Sync</span><b id="lastUpdateVal">${fmtTime(state.lastUpdate)}</b></div>
   </div>`;
@@ -87,46 +89,94 @@ function renderRoverBadge(status) {
 
 /* ---------- ROVER PANEL (FLEET BENTO TILES) ---------- */
 function renderRoverPanel() {
-  const rows = rovers.map(r => {
-    const selected = state.selectedRoverId === r.id;
-    const isDeployed = r.status === 'Deployed' || r.status === 'On Site';
-    const feedOn = state.liveFeedRoverId === r.id;
-    const telem = HYDRA_TELEMETRY.getRoverTelemetry(r.id);
-    const etaText = isDeployed ? HYDRA_TELEMETRY.formatEta(telem.etaSeconds) : '—';
+  const isLive = state.mode === 'live';
+  const fleetRovers = isLive ? rovers.filter(r => r.isEsp32) : rovers;
+  const espConnectedCount = rovers.filter(r => r.isEsp32).length;
 
-    return `
-    <div class="rover-card ${selected ? 'selected' : ''}" data-action="select-rover" data-id="${r.id}">
-      <div class="rover-top">
-        <div class="rover-id">
-          <span class="rover-type-icon">${typeIcon(r.type)}</span>
-          <span class="rover-name">${r.name}</span>
+  let contentHtml = '';
+  if (isLive && fleetRovers.length === 0) {
+    contentHtml = `
+      <div class="rover-empty-live">
+        <div class="wifi-empty-icon">
+          <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+            <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+            <circle cx="12" cy="20" r="1.5" fill="currentColor"/>
+          </svg>
         </div>
-        ${renderRoverBadge(r.status)}
-      </div>
-      <div class="rover-meta">${r.task}</div>
-      <div class="rover-stats">
-        <div class="rover-stat">
-          <span class="stat-sub">BATT</span>
-          <span class="batt-track"><span class="batt-fill ${battClass(r.battery)}" style="width:${r.battery}%"></span></span>
-          <span style="font-weight:600;">${r.battery}%</span>
+        <div class="es-title" style="margin-top:8px;font-size:12px;font-weight:700;color:var(--text-0);">No Real Hardware Linked</div>
+        <div class="es-sub" style="margin-top:4px;text-align:center;max-width:210px;font-size:10.5px;color:var(--text-3);line-height:1.4;">
+          In <b>Live Feeds</b> mode, all simulated data is unwired. Connect your real physical ESP32-CAM rovers &amp; drones over WiFi.
         </div>
-        ${isDeployed ? `<div class="rover-stat" style="color:var(--accent-cyan);font-weight:600;">${telem.speed.toFixed(0)} km/h</div>` : ''}
-        ${isDeployed ? `<div class="rover-stat" style="color:var(--accent-amber);font-weight:600;">ETA ${etaText}</div>` : ''}
-        <div class="rover-stat">${connPips(r.connection)}</div>
-      </div>
-      ${isDeployed ? `<div class="rover-actions">
-        <button class="mini-btn ${feedOn ? 'feed-on' : ''}" data-action="toggle-feed" data-id="${r.id}">${feedOn ? 'Feed Active' : 'Show Live Feed'}</button>
-      </div>` : ``}
-    </div>`;
-  }).join('');
+        <button class="btn btn-primary btn-sm" data-action="open-esp32-modal" style="margin-top:12px;">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><line x1="12" y1="20" x2="12.01" y2="20" stroke-width="3"/></svg>
+          Connect Physical WiFi Rover
+        </button>
+      </div>`;
+  } else {
+    contentHtml = fleetRovers.map(r => {
+      const selected = state.selectedRoverId === r.id;
+      const isDeployed = r.status === 'Deployed' || r.status === 'On Site';
+      const feedOn = state.liveFeedRoverId === r.id;
+      const telem = HYDRA_TELEMETRY.getRoverTelemetry(r.id);
+      const etaText = isDeployed ? HYDRA_TELEMETRY.formatEta(telem.etaSeconds) : '—';
+      const isEsp = !!r.isEsp32;
+
+      return `
+      <div class="rover-card ${selected ? 'selected' : ''} ${isEsp ? 'rover-card-esp32' : ''}" data-action="select-rover" data-id="${r.id}">
+        <div class="rover-top">
+          <div class="rover-id">
+            <span class="rover-type-icon ${isEsp ? 'esp32-icon' : ''}">${typeIcon(r.type)}</span>
+            <span class="rover-name">${r.name}</span>
+            ${isEsp ? `<span class="esp32-badge" title="ESP32 WiFi Hardware Device &middot; ${r.ip}"><svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><line x1="12" y1="20" x2="12.01" y2="20" stroke-width="3.5"/></svg> ESP32</span>` : ''}
+          </div>
+          ${renderRoverBadge(r.status)}
+        </div>
+        <div class="rover-meta">${r.task}${isEsp ? ` &middot; <span class="esp-ip-text">${r.ip}</span>` : ''}</div>
+        <div class="rover-stats">
+          <div class="rover-stat">
+            <span class="stat-sub">BATT</span>
+            <span class="batt-track"><span class="batt-fill ${battClass(r.battery)}" style="width:${r.battery}%"></span></span>
+            <span style="font-weight:600;">${r.battery}%</span>
+          </div>
+          ${isDeployed ? `<div class="rover-stat" style="color:var(--accent-cyan);font-weight:600;">${telem.speed.toFixed(0)} km/h</div>` : ''}
+          ${isDeployed ? `<div class="rover-stat" style="color:var(--accent-amber);font-weight:600;">ETA ${etaText}</div>` : ''}
+          ${isEsp ? `<div class="rover-stat esp32-rssi" title="WiFi RSSI: ${r.rssi || -52} dBm"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="currentColor"/></svg> ${r.rssi || -52} dBm</div>` : `<div class="rover-stat">${connPips(r.connection)}</div>`}
+        </div>
+        <div class="rover-actions">
+          ${isDeployed || isEsp ? `
+            <button class="mini-btn ${feedOn ? 'feed-on' : ''}" data-action="toggle-feed" data-id="${r.id}">
+              <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:3px;"><rect x="2" y="6" width="14" height="12" rx="1.6"/><path d="M16 10.5l6-3.5v10l-6-3.5"/></svg>
+              ${feedOn ? 'Feed Active' : 'Live Camera Feed'}
+            </button>` : ``}
+          ${isEsp ? `
+            <button class="mini-btn mini-btn-danger" data-action="disconnect-esp32" data-id="${r.id}" title="Disconnect ESP32 WiFi connection">
+              Disconnect
+            </button>` : ``}
+        </div>
+      </div>`;
+    }).join('');
+  }
 
   return `
   <div class="col col-left">
     <div class="col-header">
-      <span class="col-title">Scout Rovers</span>
-      <span class="col-count">${rovers.length}</span>
+      <div class="col-header-title-group">
+        <span class="col-title">${isLive ? 'Live Scout Fleet' : 'Scout Rovers'}</span>
+        <button class="wifi-connect-btn" data-action="open-esp32-modal" title="Connect ESP32 WiFi Rover / Drone (ESP32-CAM, ESP32-S3, IoT)">
+          <svg class="wifi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+            <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+            <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+            <circle cx="12" cy="20" r="1.5" fill="currentColor"/>
+          </svg>
+          <span class="wifi-btn-text">Connect WiFi</span>
+          ${espConnectedCount > 0 ? `<span class="wifi-pill-count">${espConnectedCount}</span>` : ''}
+        </button>
+      </div>
+      <span class="col-count">${fleetRovers.length}</span>
     </div>
-    <div class="col-body">${rows}</div>
+    <div class="col-body">${contentHtml}</div>
   </div>`;
 }
 
@@ -245,3 +295,277 @@ function renderLiveBanner() {
     Live Mode Active &mdash; Connected to live USGS Earthquake &amp; NASA EONET satellite feeds. Polling updates every 30s.
   </div>`;
 }
+
+/* ---------- ESP32 WIFI VEHICLE CONNECTION MODAL ---------- */
+function renderEsp32Modal() {
+  if (!state.esp32ModalOpen) {
+    return `<div class="modal-overlay" id="esp32ModalOverlay"></div>`;
+  }
+
+  const activeTab = HYDRA_ESP32.activeTab || 'scanner';
+  const isScanning = HYDRA_ESP32.isScanning;
+  const isLive = state.mode === 'live';
+  const discovered = isLive 
+    ? (HYDRA_ESP32.discoveredDevices.filter(d => d.isRealHardware || (d.status && d.status.includes('Live')) || rovers.some(r => r.ip === d.ip && r.isHardwareLive)))
+    : (HYDRA_ESP32.discoveredDevices || []);
+
+  // Helper for RSSI signal bars
+  function renderRssiBars(rssi) {
+    const bars = rssi >= -50 ? 4 : rssi >= -65 ? 3 : rssi >= -75 ? 2 : 1;
+    return `
+    <span class="rssi-meter" title="Signal: ${rssi} dBm">
+      <i class="${bars >= 1 ? 'bar-on' : ''}"></i>
+      <i class="${bars >= 2 ? 'bar-on' : ''}"></i>
+      <i class="${bars >= 3 ? 'bar-on' : ''}"></i>
+      <i class="${bars >= 4 ? 'bar-on' : ''}"></i>
+      <span class="rssi-val">${rssi} dBm</span>
+    </span>`;
+  }
+
+  let tabBodyHtml = '';
+
+  if (activeTab === 'scanner') {
+    let devRows = '';
+
+    if (discovered.length === 0) {
+      devRows = `
+      <div class="esp-scanner-empty" style="padding:28px 16px;text-align:center;background:var(--bg-card);border:1px dashed var(--border-card);border-radius:var(--radius-s);display:flex;flex-direction:column;align-items:center;">
+        <span class="scanner-pulse ${isScanning ? 'active' : ''}"></span>
+        <div style="font-weight:700;font-size:12px;color:var(--text-0);margin-top:10px;">${isScanning ? 'Scanning 2.4GHz Local WiFi Subnet...' : 'No Physical Hardware Discovered on LAN'}</div>
+        <div style="font-size:11px;color:var(--text-2);text-align:center;max-width:320px;margin-top:4px;line-height:1.4;">
+          ${isScanning ? 'Listening for real ESP32-CAM and ESP32-S3 boards on your local subnet...' : 'Ensure your ESP32 rover is powered on and connected to your WiFi router or its hotspot (192.168.4.1), or use Manual IP Setup.'}
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px;">
+          <button class="btn btn-secondary btn-sm" data-action="scan-esp32" ${isScanning ? 'disabled' : ''}>
+            <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" class="${isScanning ? 'spin' : ''}"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            ${isScanning ? 'Scanning...' : 'Rescan Subnet'}
+          </button>
+          <button class="btn btn-primary btn-sm" data-action="switch-esp32-tab" data-tab="manual">
+            Manual IP Setup
+          </button>
+        </div>
+      </div>`;
+    } else {
+      devRows = discovered.map(d => {
+        const isConnected = rovers.some(r => r.id === d.id || (r.isEsp32 && r.ip === d.ip));
+        const featuresHtml = (d.features || []).map(f => `<span class="esp-feature-tag">${f}</span>`).join('');
+
+        return `
+        <div class="esp-device-card ${isConnected ? 'device-connected' : ''}">
+          <div class="esp-dev-main">
+            <div class="esp-dev-head">
+              <span class="esp-dev-icon">${typeIcon(d.type)}</span>
+              <div class="esp-dev-info">
+                <div class="esp-dev-name">${d.name} <span class="esp-chipset">${d.chipset || 'ESP32-CAM'}</span></div>
+                <div class="esp-dev-ip">IP: <b>${d.ip}:${d.port || 81}${d.streamPath || '/stream'}</b> &middot; MAC: ${d.mac || '—'}</div>
+              </div>
+            </div>
+            <div class="esp-dev-meta">
+              ${renderRssiBars(d.rssi || -55)}
+              <span class="esp-batt"><span class="batt-track"><span class="batt-fill ${battClass(d.battery)}" style="width:${d.battery}%"></span></span> ${d.battery}%</span>
+            </div>
+          </div>
+          <div class="esp-dev-features">${featuresHtml}</div>
+          <div class="esp-dev-foot">
+            ${isConnected ? `
+              <span class="esp-linked-tag"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Linked in Scout Fleet</span>
+              <button class="mini-btn mini-btn-danger" data-action="disconnect-esp32" data-id="${d.id}">Disconnect</button>
+            ` : `
+              <span class="esp-status-avail"><span class="dot-avail"></span> Ready to link</span>
+              <button class="btn btn-primary btn-sm" data-action="connect-esp32-discovered" data-id="${d.id}">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><line x1="12" y1="20" x2="12.01" y2="20" stroke-width="3"/></svg>
+                Connect Vehicle
+              </button>
+            `}
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    tabBodyHtml = `
+    <div class="esp-scanner-top">
+      <div class="esp-scanner-status">
+        <span class="scanner-pulse ${isScanning ? 'active' : ''}"></span>
+        <span>${isScanning ? 'Scanning 2.4GHz WiFi Subnet...' : `Discovered <b>${discovered.length}</b> ESP32 WiFi vehicles`}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        ${discovered.length > 0 ? `
+          <button class="btn btn-primary btn-sm" data-action="connect-all-esp32" title="Connect and link all discovered ESP32 units to the scout fleet simultaneously">
+            <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><polyline points="9 11 12 14 22 4"/></svg>
+            Connect All Devices
+          </button>` : ''}
+        <button class="btn btn-secondary btn-sm" data-action="scan-esp32" ${isScanning ? 'disabled' : ''}>
+          <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" class="${isScanning ? 'spin' : ''}"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          ${isScanning ? 'Scanning...' : 'Rescan'}
+        </button>
+      </div>
+    </div>
+    <div class="esp-dev-list">
+      ${devRows}
+    </div>
+    <div class="esp-tip-box">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      <div><b>${isLive ? 'Live Hardware Setup:' : 'Quick Connection Guide:'}</b> Connect your computer to your ESP32 rover's WiFi Access Point (e.g. <code>192.168.4.1</code>) or ensure both devices share the same local router. In <b>Live Feeds</b> mode, all simulated data is removed.</div>
+    </div>`;
+  } else if (activeTab === 'manual') {
+    // Manual setup tab
+    tabBodyHtml = `
+    <div class="esp-manual-form">
+      <div class="form-row">
+        <label class="form-label">Vehicle Name</label>
+        <input type="text" id="manualEspName" class="form-input" value="ESP32-Scout-${rovers.filter(r => r.isEsp32).length + 1}" placeholder="e.g. ESP32-Rover-01 or SkyScout-02" />
+      </div>
+      <div class="form-row">
+        <label class="form-label">Vehicle Type</label>
+        <div class="type-radio-pills" id="manualEspTypeGroup">
+          <button type="button" class="type-pill active" data-action="set-manual-type" data-type="ground">
+            ${typeIcon('ground')} Ground Rover
+          </button>
+          <button type="button" class="type-pill" data-action="set-manual-type" data-type="aerial">
+            ${typeIcon('aerial')} Aerial Drone
+          </button>
+        </div>
+      </div>
+      <div class="form-grid-2">
+        <div class="form-row">
+          <label class="form-label">ESP32 IP / Host</label>
+          <input type="text" id="manualEspIp" class="form-input" value="192.168.1.${105 + rovers.filter(r => r.isEsp32).length}" placeholder="192.168.4.1 or 192.168.1.x" />
+        </div>
+        <div class="form-row">
+          <label class="form-label">Stream Port</label>
+          <input type="number" id="manualEspPort" class="form-input" value="81" placeholder="81 or 80" />
+        </div>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Camera Stream Path</label>
+        <input type="text" id="manualEspPath" class="form-input" value="/stream" placeholder="/stream or /mjpeg or /capture" />
+      </div>
+
+      <!-- Test stream preview box -->
+      <div class="esp-preview-box" id="espTestPreviewBox">
+        <div class="preview-header">
+          <span>Camera Stream Preview</span>
+          <button class="link-btn" data-action="test-esp32-stream" style="color:var(--accent-cyan);font-weight:700;">Test Link &amp; Preview</button>
+        </div>
+        <div class="preview-screen" id="espTestScreen">
+          <div class="preview-placeholder">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="6" width="14" height="12" rx="1.6"/><path d="M16 10.5l6-3.5v10l-6-3.5"/></svg>
+            <span>Click "Test Link &amp; Preview" to verify MJPEG video feed</span>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  } else if (activeTab === 'firmware') {
+    tabBodyHtml = `
+    <div class="esp-firmware-guide">
+      <div class="esp-fw-head">
+        <div>
+          <div style="font-weight:700;font-size:12px;color:var(--text-0);">Arduino / PlatformIO ESP32-CAM Firmware</div>
+          <div style="font-size:10.5px;color:var(--text-2);">Flash your physical ESP32 board to link directly with HYDRA Mission Control.</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('espInoCode').innerText); alert('Arduino .ino firmware code copied to clipboard!');">
+          <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copy .INO Sketch
+        </button>
+      </div>
+      <div class="esp-code-container">
+        <pre><code id="espInoCode" class="esp-code">// HYDRA Mission Control - ESP32-CAM Physical Rover Firmware
+// File saved in project root as: ESP32_HYDRA_ROVER.ino
+// 1. Open Arduino IDE -> Select Board: "AI Thinker ESP32-CAM"
+// 2. Set PSRAM: "Enabled"
+// 3. Connect to "HYDRA-ESP32-ROVER" WiFi (192.168.4.1) or your home router.
+// 4. Click "Connect" in HYDRA Scout Rovers to stream live video!
+
+#include "esp_camera.h"
+#include &lt;WiFi.h&gt;
+#include "esp_http_server.h"
+
+// Camera Pins &amp; Motor Pins configured for AI-Thinker ESP32-CAM
+// Endpoints: /stream (Port 81), /status (JSON), /action?go=forward
+// Check workspace file: ESP32_HYDRA_ROVER.ino for full source code!</code></pre>
+      </div>
+      <div class="esp-hw-specs-grid">
+        <div class="hw-spec-card">
+          <b>Camera Stream</b>
+          <span>MJPEG at Port 81 (/stream)</span>
+        </div>
+        <div class="hw-spec-card">
+          <b>Motor Control</b>
+          <span>GPIOs 12, 13, 14, 15 (/action)</span>
+        </div>
+        <div class="hw-spec-card">
+          <b>Flashlight LED</b>
+          <span>GPIO 4 (/control?var=flash)</span>
+        </div>
+        <div class="hw-spec-card">
+          <b>Telemetry JSON</b>
+          <span>Battery &amp; RSSI (/status)</span>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  const linkedCount = rovers.filter(r => r.isEsp32).length;
+
+  return `
+  <div class="modal-overlay show" id="esp32ModalOverlay" data-action="overlay-close">
+    <div class="modal esp32-modal" data-stop="1">
+      <div class="modal-header">
+        <div class="mh-top-row">
+          <div class="mh-icon-title">
+            <div class="wifi-modal-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+                <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+                <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+                <circle cx="12" cy="20" r="1.5" fill="currentColor"/>
+              </svg>
+            </div>
+            <div>
+              <div class="mh-title">Connect ESP32 WiFi Rover &amp; Drone</div>
+              <div class="mh-sub">Live 2.4GHz WiFi link for ESP32-CAM, ESP32-S3 &amp; Physical IoT Hardware</div>
+            </div>
+          </div>
+          <button class="modal-close-btn" data-action="close-esp32-modal" aria-label="Close modal">&times;</button>
+        </div>
+
+        <!-- Tab Pills -->
+        <div class="modal-tabs">
+          <button class="modal-tab ${activeTab === 'scanner' ? 'active' : ''}" data-action="switch-esp32-tab" data-tab="scanner">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><line x1="12" y1="20" x2="12.01" y2="20" stroke-width="3"/></svg>
+            WiFi Scanner
+          </button>
+          <button class="modal-tab ${activeTab === 'manual' ? 'active' : ''}" data-action="switch-esp32-tab" data-tab="manual">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            Manual IP Setup
+          </button>
+          <button class="modal-tab ${activeTab === 'firmware' ? 'active' : ''}" data-action="switch-esp32-tab" data-tab="firmware">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            Arduino Firmware (.ino)
+          </button>
+        </div>
+      </div>
+
+      <div class="modal-body esp-modal-body">
+        ${tabBodyHtml}
+      </div>
+
+      <div class="modal-footer" style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-size:11px;color:var(--text-2);display:flex;align-items:center;gap:6px;">
+          <span class="esp32-badge" style="margin:0;">${linkedCount} Linked</span>
+          <span>ESP32 unit${linkedCount !== 1 ? 's' : ''} active in Scout fleet</span>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn" data-action="close-esp32-modal">Done</button>
+          ${activeTab === 'manual' ? `
+            <button class="btn btn-primary" data-action="connect-esp32-manual">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><line x1="12" y1="20" x2="12.01" y2="20" stroke-width="3"/></svg>
+              Connect &amp; Add to Fleet
+            </button>
+          ` : ``}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+

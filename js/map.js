@@ -215,8 +215,11 @@ function renderMapSvg() {
     </g>`;
   }).join('');
 
+  const isLive = state.mode === 'live';
+  const activeFleet = isLive ? rovers.filter(r => r.isEsp32) : rovers;
+
   // Route paths
-  const routes = rovers.filter(r => r.hazardId).map(r => {
+  const routes = activeFleet.filter(r => r.hazardId).map(r => {
     const h = byId(hazards, r.hazardId);
     if (!h) return '';
     const telem = HYDRA_TELEMETRY.getRoverTelemetry(r.id);
@@ -234,8 +237,8 @@ function renderMapSvg() {
     </g>`;
   }).join('');
 
-  // Rover markers with real-time positions & heading orientation
-  const roverMarkers = rovers.map(r => {
+  // Rover markers with real-time positions & heading orientation (Only live hardware in Live mode)
+  const roverMarkers = activeFleet.map(r => {
     const telem = HYDRA_TELEMETRY.getRoverTelemetry(r.id);
     const isSelected = state.selectedRoverId === r.id;
     const isDeployed = r.status === 'Deployed' || r.status === 'On Site';
@@ -256,11 +259,14 @@ function renderMapSvg() {
           <line x1="0" y1="-9" x2="0" y2="-14" stroke="#0ea5e9" stroke-width="1.8" stroke-linecap="round"/>
          </g>`;
 
+    const isEsp = !!r.isEsp32;
+
     return `
-    <g class="marker rover-marker-${r.type} ${isSelected ? 'selected' : ''} ${isDeployed ? 'deployed' : ''}" style="${isDimmed ? 'opacity:0.2;' : ''}" data-action="select-rover" data-id="${r.id}" transform="translate(${posX},${posY})">
+    <g class="marker rover-marker-${r.type} ${isSelected ? 'selected' : ''} ${isDeployed ? 'deployed' : ''} ${isEsp ? 'rover-esp32' : ''}" style="${isDimmed ? 'opacity:0.2;' : ''}" data-action="select-rover" data-id="${r.id}" transform="translate(${posX},${posY})">
+      ${isEsp ? `<circle r="13" fill="none" stroke="var(--accent-cyan)" stroke-width="0.8" stroke-dasharray="2 2" opacity="0.65"/>` : ''}
       ${shape}
-      <text class="marker-label" x="12" y="3.5">${r.name}</text>
-      ${isDeployed ? `<text class="marker-label" x="12" y="13" font-size="8px" fill="var(--accent-cyan)">${telem.speed.toFixed(0)} km/h</text>` : ''}
+      <text class="marker-label" x="12" y="3.5">${r.name}${isEsp ? ' [WiFi]' : ''}</text>
+      ${isDeployed ? `<text class="marker-label" x="12" y="13" font-size="8px" fill="var(--accent-cyan)">${telem.speed.toFixed(0)} km/h</text>` : (isEsp ? `<text class="marker-label" x="12" y="13" font-size="7.5px" fill="var(--accent-emerald)">${r.ip}</text>` : '')}
     </g>`;
   }).join('');
 
@@ -316,22 +322,31 @@ function renderRoverInfoPanel() {
   const h = r.hazardId ? byId(hazards, r.hazardId) : null;
   const isDeployed = r.status === 'Deployed' || r.status === 'On Site';
   const etaStr = isDeployed ? HYDRA_TELEMETRY.formatEta(telem.etaSeconds) : '—';
+  const isEsp = !!r.isEsp32;
 
   return `
   <div class="rover-info-panel show" id="roverInfoPanel">
     <div class="rip-head">
-      <b>${r.name} <span style="color:var(--text-low);font-weight:400;font-size:11px;">${r.id} &middot; ${r.type.toUpperCase()}</span></b>
+      <b>${r.name} <span style="color:var(--text-3);font-weight:400;font-size:10.5px;">${r.id} &middot; ${r.type.toUpperCase()}${isEsp ? ' (WiFi)' : ''}</span></b>
       <button class="rip-close" data-action="deselect-rover" aria-label="Close">&times;</button>
     </div>
     <div class="rip-grid">
-      <div class="detail-field"><label>Status</label><span style="color:var(--accent-${isDeployed ? 'teal' : 'mid'});">${r.status}</span></div>
+      <div class="detail-field"><label>Status</label><span style="color:var(--accent-${isDeployed ? 'cyan' : 'emerald'});">${r.status}</span></div>
       <div class="detail-field"><label>Destination</label><span>${h ? h.name.split(',')[0] : '—'}</span></div>
       <div class="detail-field"><label>ETA</label><span style="color:var(--accent-amber);">${etaStr}</span></div>
       <div class="detail-field"><label>Battery</label><span>${r.battery}%</span></div>
       <div class="detail-field"><label>Live Speed</label><span>${isDeployed ? `${telem.speed.toFixed(1)} km/h` : '0 km/h'}</span></div>
-      <div class="detail-field"><label>Heading / Link</label><span>${isDeployed ? `${telem.heading}°` : '—'} &middot; ${r.connection.toUpperCase()}</span></div>
+      <div class="detail-field"><label>${isEsp ? 'WiFi IP & RSSI' : 'Heading / Link'}</label><span>${isEsp ? `${r.ip} (${r.rssi || -52}dBm)` : `${isDeployed ? `${telem.heading}°` : '—'} &middot; ${r.connection.toUpperCase()}`}</span></div>
     </div>
-    ${isDeployed ? `<button class="mini-btn ${state.liveFeedRoverId === r.id ? 'feed-on' : ''}" style="width:100%;" data-action="toggle-feed" data-id="${r.id}">${state.liveFeedRoverId === r.id ? 'Feed Active' : 'Show Live Feed'}</button>` : ``}
+    <div style="display:flex;gap:6px;margin-top:6px;">
+      <button class="mini-btn ${state.liveFeedRoverId === r.id ? 'feed-on' : ''}" style="flex:1;" data-action="toggle-feed" data-id="${r.id}">
+        ${state.liveFeedRoverId === r.id ? 'Feed Active' : 'Show Live Feed'}
+      </button>
+      ${isEsp ? `
+        <button class="mini-btn mini-btn-danger" data-action="disconnect-esp32" data-id="${r.id}" title="Disconnect ESP32">
+          Disconnect
+        </button>` : ''}
+    </div>
   </div>`;
 }
 

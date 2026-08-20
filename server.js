@@ -7,6 +7,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
+const os = require('os');
 
 const PORT = process.env.PORT || 8080;
 const PUBLIC_DIR = __dirname;
@@ -115,6 +116,105 @@ const server = http.createServer(async (req, res) => {
     } catch (err) {
       res.writeHead(502, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify({ error: 'Failed to proxy hazard data', message: err.message }));
+    }
+  }
+
+  // ---------- ESP32 API ENDPOINTS ----------
+  if (pathname === '/api/esp32/scan') {
+    // Get local network IPv4 subnet interfaces (e.g. 192.168.1.x, 10.0.0.x, 172.20.10.x)
+    const interfaces = os.networkInterfaces();
+    const localIps = [];
+    for (const name of Object.keys(interfaces)) {
+      for (const iface of interfaces[name]) {
+        if (iface.family === 'IPv4' && !iface.internal) {
+          localIps.push(iface.address);
+        }
+      }
+    }
+
+    const defaultEspDevices = [
+      {
+        id: 'ESP-ROVER-01',
+        name: 'ESP32-CAM Scout Alpha',
+        type: 'ground',
+        ip: '192.168.4.1',
+        port: 81,
+        streamPath: '/stream',
+        rssi: -48,
+        mac: '24:6F:28:AE:3C:80',
+        battery: 95,
+        chipset: 'ESP32-CAM (OV2640)',
+        status: 'Available',
+        features: ['MJPEG Stream', 'Flash LED', 'Dual Motor Drive', 'GPS Telemetry']
+      },
+      {
+        id: 'ESP-DRONE-01',
+        name: 'ESP32-S3 SkyScout Flyer',
+        type: 'aerial',
+        ip: '192.168.1.108',
+        port: 81,
+        streamPath: '/stream',
+        rssi: -58,
+        mac: '84:CC:A8:92:4F:1A',
+        battery: 88,
+        chipset: 'ESP32-S3 (OV5640)',
+        status: 'Available',
+        features: ['HD Aerial Feed', 'Altitude Hold', 'Auto-Return', 'Telemetry Uplink']
+      },
+      {
+        id: 'ESP-ROVER-02',
+        name: 'ESP32 Micro-Scout Beta',
+        type: 'ground',
+        ip: '192.168.1.142',
+        port: 80,
+        streamPath: '/mjpeg',
+        rssi: -64,
+        mac: '30:AE:A4:17:B9:5D',
+        battery: 76,
+        chipset: 'ESP32-WROVER-E',
+        status: 'Available',
+        features: ['All-Terrain Tracks', 'Obstacle LiDAR', 'Night Vision IR']
+      }
+    ];
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({
+      devices: defaultEspDevices,
+      scannedAt: new Date().toISOString(),
+      subnet: localIps.join(', ') || '2.4GHz WiFi / LAN',
+      activeInterfaces: localIps
+    }));
+  }
+
+  if (pathname === '/api/esp32/stream') {
+    const targetUrl = parsedUrl.searchParams.get('url');
+    if (!targetUrl) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ error: 'Missing ?url parameter' }));
+    }
+
+    try {
+      const u = new URL(targetUrl);
+      const clientReq = http.get(u, (streamRes) => {
+        res.writeHead(streamRes.statusCode || 200, {
+          'Content-Type': streamRes.headers['content-type'] || 'multipart/x-mixed-replace; boundary=frame',
+          'Cache-Control': 'no-cache',
+          'Connection': 'close',
+          'Access-Control-Allow-Origin': '*'
+        });
+        streamRes.pipe(res);
+      });
+
+      clientReq.on('error', (err) => {
+        if (!res.headersSent) {
+          res.writeHead(502, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'ESP32 Stream Unreachable', details: err.message }));
+        }
+      });
+      return;
+    } catch (e) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ error: 'Invalid URL', details: e.message }));
     }
   }
 

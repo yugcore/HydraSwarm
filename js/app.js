@@ -11,6 +11,9 @@ const state = {
   liveFeedRoverId: null,
   deployModalHazardId: null,
   deployChecked: new Set(),
+  esp32ModalOpen: false,
+  feedViewMode: 'single', // 'single' | 'grid'
+  feedExpanded: false,
   lastUpdate: new Date(),
   isSyncing: false,
 };
@@ -45,8 +48,9 @@ function render() {
       ${renderHazardPanel()}
     </div>
     ${renderDeployModal()}
+    ${typeof renderEsp32Modal === 'function' ? renderEsp32Modal() : ''}
   `;
-  if (state.liveFeedRoverId && (state.mode === 'simulation' || state.mode === 'live')) {
+  if (state.liveFeedRoverId) {
     startFeedAnim();
   }
 }
@@ -117,6 +121,11 @@ document.addEventListener('click', (e) => {
   const overlayClose = e.target.closest('[data-action="overlay-close"]');
   const stopEl = e.target.closest('[data-stop]');
   if (overlayClose && !stopEl) {
+    if (state.esp32ModalOpen) {
+      state.esp32ModalOpen = false;
+      render();
+      return;
+    }
     closeDeployModal();
     return;
   }
@@ -135,6 +144,8 @@ document.addEventListener('click', (e) => {
       state.deployModalHazardId = null;
       if (state.mode === 'live') {
         syncLiveHazards();
+        const firstEsp = rovers.find(r => r.isEsp32);
+        if (firstEsp) state.liveFeedRoverId = firstEsp.id;
       }
       render();
       break;
@@ -171,10 +182,25 @@ document.addEventListener('click', (e) => {
       break;
     case 'toggle-feed':
       state.liveFeedRoverId = state.liveFeedRoverId === id ? null : id;
+      state.feedViewMode = 'single';
+      render();
+      break;
+    case 'set-feed-view':
+      state.feedViewMode = t.dataset.view || 'single';
+      render();
+      break;
+    case 'select-active-feed':
+      state.liveFeedRoverId = id;
+      state.feedViewMode = 'single';
+      render();
+      break;
+    case 'toggle-feed-size':
+      state.feedExpanded = !state.feedExpanded;
       render();
       break;
     case 'close-feed':
       state.liveFeedRoverId = null;
+      state.feedViewMode = 'single';
       render();
       break;
     case 'open-deploy':
@@ -202,6 +228,107 @@ document.addEventListener('click', (e) => {
     case 'confirm-deploy':
       confirmDeploy();
       break;
+
+    /* ---------- ESP32 ACTIONS ---------- */
+    case 'open-esp32-modal':
+      state.esp32ModalOpen = true;
+      render();
+      break;
+    case 'close-esp32-modal':
+      state.esp32ModalOpen = false;
+      render();
+      break;
+    case 'switch-esp32-tab':
+      if (typeof HYDRA_ESP32 !== 'undefined') {
+        HYDRA_ESP32.activeTab = t.dataset.tab || 'scanner';
+        render();
+      }
+      break;
+    case 'scan-esp32':
+      if (typeof HYDRA_ESP32 !== 'undefined') {
+        HYDRA_ESP32.scanNetwork();
+      }
+      break;
+    case 'connect-esp32-discovered':
+      if (typeof HYDRA_ESP32 !== 'undefined') {
+        HYDRA_ESP32.connectDiscovered(id);
+      }
+      break;
+    case 'connect-all-esp32':
+      if (typeof HYDRA_ESP32 !== 'undefined') {
+        HYDRA_ESP32.connectAllDiscovered();
+      }
+      break;
+    case 'set-manual-type': {
+      const parent = t.closest('.type-radio-pills');
+      if (parent) {
+        parent.querySelectorAll('.type-pill').forEach(b => b.classList.remove('active'));
+        t.classList.add('active');
+      }
+      break;
+    }
+    case 'test-esp32-stream': {
+      const ip = (document.getElementById('manualEspIp')?.value || '192.168.4.1').trim();
+      const port = document.getElementById('manualEspPort')?.value || 81;
+      const path = document.getElementById('manualEspPath')?.value || '/stream';
+      const streamUrl = HYDRA_ESP32.buildStreamUrl(ip, port, path);
+      const screen = document.getElementById('espTestScreen');
+      if (screen) {
+        screen.innerHTML = `
+          <div class="test-stream-container">
+            <img src="${streamUrl}" class="test-img-stream" alt="Testing stream" 
+                 onerror="this.style.display='none'; document.getElementById('testFailMsg').style.display='block';"
+                 onload="document.getElementById('testOkBadge').style.display='inline-flex';" />
+            <div id="testOkBadge" class="test-badge ok" style="display:none;">Stream Active &bull; ${ip}</div>
+            <div id="testFailMsg" class="test-fallback-view" style="display:none;">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--accent-amber)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <span>Connecting to <b>${ip}</b>... Device ready for fleet link.</span>
+            </div>
+          </div>`;
+      }
+      break;
+    }
+    case 'connect-esp32-manual': {
+      const name = (document.getElementById('manualEspName')?.value || 'ESP32-Scout').trim();
+      const activePill = document.querySelector('#manualEspTypeGroup .type-pill.active');
+      const type = activePill ? activePill.dataset.type : 'ground';
+      const ip = (document.getElementById('manualEspIp')?.value || '192.168.4.1').trim();
+      const port = document.getElementById('manualEspPort')?.value || 81;
+      const streamPath = (document.getElementById('manualEspPath')?.value || '/stream').trim();
+
+      if (typeof HYDRA_ESP32 !== 'undefined') {
+        HYDRA_ESP32.connectManual({ name, type, ip, port, streamPath });
+      }
+      break;
+    }
+    case 'disconnect-esp32':
+      if (typeof HYDRA_ESP32 !== 'undefined') {
+        HYDRA_ESP32.disconnectRover(id);
+      }
+      break;
+    case 'toggle-esp32-flash':
+      if (typeof HYDRA_ESP32 !== 'undefined') {
+        HYDRA_ESP32.toggleFlashLed(id);
+      }
+      break;
+    case 'capture-esp32-snapshot':
+      if (typeof HYDRA_ESP32 !== 'undefined') {
+        HYDRA_ESP32.captureSnapshot(id);
+      }
+      break;
+    case 'cycle-esp32-res': {
+      const resList = ['QVGA', 'VGA', 'SVGA', 'XGA', 'HD'];
+      const current = HYDRA_ESP32.currentResolution || 'SVGA';
+      const nextIdx = (resList.indexOf(current) + 1) % resList.length;
+      const nextRes = resList[nextIdx];
+      HYDRA_ESP32.setResolution(id, nextRes);
+      break;
+    }
+    case 'esp-drive':
+      if (typeof HYDRA_ESP32 !== 'undefined') {
+        HYDRA_ESP32.sendVehicleControl(t.dataset.id, t.dataset.cmd);
+      }
+      break;
   }
 });
 
@@ -217,7 +344,7 @@ setInterval(() => {
 
 // Live map & telemetry refresh tick (keeps rover positions & ETAs moving smoothly)
 setInterval(() => {
-  if ((state.mode === 'simulation' || state.mode === 'live') && typeof rovers !== 'undefined') {
+  if (typeof rovers !== 'undefined') {
     const hasMovingRovers = rovers.some(r => r.status === 'Deployed' || r.status === 'On Site');
     if (hasMovingRovers) {
       const mapWrap = document.querySelector('.map-wrap');
@@ -255,16 +382,14 @@ setInterval(() => {
 
 // Battery & periodic state drift tick
 setInterval(() => {
-  if (state.mode === 'simulation' || state.mode === 'live') {
-    state.lastUpdate = new Date();
-    const lu = document.getElementById('lastUpdateVal');
-    if (lu) lu.textContent = fmtTime(state.lastUpdate);
-    rovers.forEach(r => {
-      if (r.status === 'Deployed' && r.battery > 5) {
-        r.battery -= (Math.random() < 0.25 ? 1 : 0);
-      }
-    });
-  }
+  state.lastUpdate = new Date();
+  const lu = document.getElementById('lastUpdateVal');
+  if (lu) lu.textContent = fmtTime(state.lastUpdate);
+  rovers.forEach(r => {
+    if (r.status === 'Deployed' && r.battery > 5) {
+      r.battery -= (Math.random() < 0.25 ? 1 : 0);
+    }
+  });
 }, 8000);
 
 // Auto-sync live hazard APIs every 30 seconds
@@ -280,6 +405,9 @@ setInterval(() => {
 function init() {
   if (typeof document !== 'undefined') {
     document.documentElement.setAttribute('data-theme', state.theme);
+  }
+  if (typeof HYDRA_ESP32 !== 'undefined' && HYDRA_ESP32.loadSavedDevices) {
+    HYDRA_ESP32.loadSavedDevices();
   }
   render();
   syncLiveHazards();

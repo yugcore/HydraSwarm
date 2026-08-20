@@ -589,6 +589,32 @@ input {
   gap: 5px;
 }
 
+.rover-empty-live {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 14px;
+  background: var(--bg-card);
+  border: 1px dashed var(--border-card);
+  border-radius: var(--radius-m);
+  margin: 12px;
+  text-align: center;
+}
+
+.wifi-empty-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-cyan);
+  box-shadow: var(--shadow-bento);
+}
+
 .batt-track {
   width: 22px;
   height: 5px;
@@ -885,13 +911,15 @@ input {
   border-radius: var(--radius-l);
   box-shadow: var(--shadow-bento);
   overflow: hidden;
+  height: 100%;
 }
 
 .map-wrap {
-  flex: 1;
+  flex: 1 1 auto;
   position: relative;
-  min-height: 0;
+  min-height: 240px;
   background: var(--map-bg-start);
+  overflow: hidden;
 }
 
 .map-toolbar {
@@ -1145,6 +1173,9 @@ input {
 
 /* ---------- SVG MAP CANVAS ---------- */
 svg.map-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   display: block;
@@ -1260,15 +1291,39 @@ svg.map-svg {
   font-size: 11px;
 }
 
-/* =========================================================
-   LIVE CAMERA HUD & VIEWPORT (BENTO INSET WIDGET)
-========================================================= */
 .livefeed {
-  flex: 0 0 195px;
+  flex: 0 0 310px;
+  height: 310px;
+  min-height: 260px;
+  max-height: 420px;
   border-top: 1px solid var(--border-card);
   background: var(--bg-panel);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  transition: flex 0.2s ease, height 0.2s ease;
+}
+
+.livefeed.livefeed-idle {
+  flex: 0 0 170px;
+  height: 170px;
+  min-height: 150px;
+  max-height: 190px;
+}
+
+.livefeed.livefeed-grid-mode {
+  flex: 0 0 340px;
+  height: 340px;
+  min-height: 290px;
+  max-height: 440px;
+}
+
+.livefeed.livefeed-expanded {
+  flex: 1 1 70% !important;
+  height: 100% !important;
+  min-height: 460px !important;
+  max-height: none !important;
 }
 
 .lf-header {
@@ -1299,6 +1354,13 @@ svg.map-svg {
   animation: blink 1.6s ease-in-out infinite;
 }
 
+.rec-dot-idle {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-3);
+}
+
 @keyframes blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.25; }
@@ -1322,7 +1384,7 @@ svg.map-svg {
   flex: 1;
   position: relative;
   min-height: 0;
-  background: var(--bg-card);
+  background: #030508;
   overflow: hidden;
 }
 
@@ -1356,9 +1418,12 @@ svg.map-svg {
 }
 
 .feed-canvas {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   display: block;
+  z-index: 1;
 }
 
 .lf-overlay {
@@ -1679,3 +1744,1007 @@ svg.map-svg {
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
 }
+
+/* =========================================================
+   ESP32 WIFI CONNECTION UI & BUTTONS
+========================================================= */
+.col-header-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wifi-connect-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-cyan-dim);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  color: var(--accent-cyan);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  transition: var(--transition);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.wifi-connect-btn:hover {
+  background: var(--accent-cyan);
+  color: #04121a;
+  border-color: var(--accent-cyan);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 10px rgba(56, 189, 248, 0.35);
+}
+
+[data-theme="light"] .wifi-connect-btn:hover {
+  color: #ffffff;
+}
+
+.wifi-icon {
+  width: 13px;
+  height: 13px;
+  flex: none;
+}
+
+.wifi-pill-count {
+  font-size: 9px;
+  padding: 1px 5px;
+  background: var(--accent-cyan);
+  color: #04121a;
+  border-radius: var(--radius-pill);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.wifi-connected-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-emerald);
+  box-shadow: 0 0 6px var(--accent-emerald);
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+/* ---------- ESP32 ROVER CARD BADGES ---------- */
+.rover-card-esp32 {
+  border-color: rgba(56, 189, 248, 0.2);
+}
+
+.rover-card-esp32:hover {
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+.esp32-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: var(--radius-pill);
+  background: rgba(56, 189, 248, 0.15);
+  color: var(--accent-cyan);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  letter-spacing: 0.3px;
+  margin-left: 4px;
+}
+
+.esp-ip-text {
+  font-family: var(--mono);
+  color: var(--accent-cyan);
+  font-weight: 600;
+  font-size: 10px;
+}
+
+.esp32-rssi {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--accent-emerald);
+}
+
+.mini-btn-danger {
+  color: var(--accent-rose) !important;
+  border-color: rgba(244, 63, 94, 0.25) !important;
+  background: rgba(244, 63, 94, 0.08) !important;
+}
+
+.mini-btn-danger:hover {
+  background: var(--accent-rose) !important;
+  color: #ffffff !important;
+}
+
+/* =========================================================
+   ESP32 MODAL DIALOG & SCANNER
+========================================================= */
+.esp32-modal {
+  width: 520px;
+  max-width: 95vw;
+  max-height: 85vh;
+}
+
+.mh-top-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.mh-icon-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.wifi-modal-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-m);
+  background: var(--accent-cyan-dim);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-cyan);
+  flex: none;
+}
+
+.wifi-modal-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.modal-close-btn {
+  font-size: 20px;
+  line-height: 1;
+  color: var(--text-3);
+  padding: 4px;
+  cursor: pointer;
+}
+
+.modal-close-btn:hover {
+  color: var(--text-0);
+}
+
+.modal-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-card);
+  padding: 3px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-card);
+  margin-top: 12px;
+}
+
+.modal-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-2);
+  transition: var(--transition);
+  cursor: pointer;
+}
+
+.modal-tab:hover {
+  color: var(--text-0);
+}
+
+.modal-tab.active {
+  background: var(--bg-pill-active);
+  color: var(--text-pill-active);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.esp-modal-body {
+  padding: 14px 16px;
+  overflow-y: auto;
+  max-height: 52vh;
+}
+
+/* ---------- SCANNER VIEW ---------- */
+.esp-scanner-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.esp-scanner-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--text-1);
+}
+
+.scanner-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-emerald);
+  box-shadow: 0 0 6px var(--accent-emerald);
+}
+
+.scanner-pulse.active {
+  background: var(--accent-cyan);
+  box-shadow: 0 0 10px var(--accent-cyan);
+  animation: pulse-dot 1s infinite;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  100% { transform: rotate(360deg); }
+}
+
+.esp-dev-list {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-bottom: 14px;
+}
+
+.esp-device-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-m);
+  padding: 12px;
+  transition: var(--transition);
+}
+
+.esp-device-card:hover {
+  border-color: var(--border-card-hover);
+  background: var(--bg-card-hover);
+}
+
+.esp-device-card.device-connected {
+  border-color: rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.esp-dev-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.esp-dev-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.esp-dev-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-s);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-cyan);
+  flex: none;
+}
+
+.esp-dev-name {
+  font-weight: 700;
+  font-size: 12.5px;
+  color: var(--text-0);
+}
+
+.esp-chipset {
+  font-size: 9.5px;
+  color: var(--text-3);
+  font-weight: 600;
+  margin-left: 4px;
+}
+
+.esp-dev-ip {
+  font-size: 10.5px;
+  color: var(--text-2);
+  font-family: var(--mono);
+  margin-top: 2px;
+}
+
+.esp-dev-ip b {
+  color: var(--accent-cyan);
+}
+
+.esp-dev-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+}
+
+.rssi-meter {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--text-2);
+}
+
+.rssi-meter i {
+  display: inline-block;
+  width: 3px;
+  background: var(--bg-elevated);
+  border-radius: 1px;
+}
+
+.rssi-meter i:nth-child(1) { height: 4px; }
+.rssi-meter i:nth-child(2) { height: 7px; }
+.rssi-meter i:nth-child(3) { height: 10px; }
+.rssi-meter i:nth-child(4) { height: 13px; }
+
+.rssi-meter i.bar-on {
+  background: var(--accent-emerald);
+}
+
+.esp-batt {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.esp-dev-features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.esp-feature-tag {
+  font-size: 9px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-2);
+}
+
+.esp-dev-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.esp-status-avail {
+  font-size: 10.5px;
+  color: var(--accent-emerald);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+}
+
+.dot-avail {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent-emerald);
+}
+
+.esp-linked-tag {
+  font-size: 10.5px;
+  color: var(--accent-emerald);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 700;
+}
+
+.esp-tip-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-s);
+  font-size: 11px;
+  color: var(--text-2);
+  line-height: 1.4;
+}
+
+.esp-tip-box svg {
+  color: var(--accent-cyan);
+  flex: none;
+  margin-top: 1px;
+}
+
+.esp-tip-box code {
+  background: var(--bg-panel);
+  padding: 1px 4px;
+  border-radius: var(--radius-xs);
+  color: var(--accent-cyan);
+  font-family: var(--mono);
+}
+
+/* ---------- MANUAL SETUP FORM ---------- */
+.esp-manual-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 10px;
+}
+
+.form-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-3);
+}
+
+.form-input {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-s);
+  padding: 8px 12px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-0);
+  outline: none;
+  transition: var(--transition);
+}
+
+.form-input:focus {
+  border-color: var(--border-focus);
+  background: var(--bg-card-hover);
+}
+
+.type-radio-pills {
+  display: flex;
+  gap: 8px;
+}
+
+.type-pill {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 12px;
+  border-radius: var(--radius-s);
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.type-pill:hover {
+  border-color: var(--border-card-hover);
+  color: var(--text-0);
+}
+
+.type-pill.active {
+  background: var(--accent-cyan-dim);
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  font-weight: 700;
+}
+
+.type-pill svg {
+  width: 14px;
+  height: 14px;
+}
+
+.esp-preview-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-s);
+  padding: 10px;
+}
+
+.preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-2);
+  margin-bottom: 8px;
+}
+
+.preview-screen {
+  height: 100px;
+  background: #040609;
+  border-radius: var(--radius-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.preview-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-3);
+  font-size: 11px;
+}
+
+.test-stream-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.test-img-stream {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.test-badge.ok {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 7px;
+  background: rgba(16, 185, 129, 0.85);
+  color: #ffffff;
+  border-radius: var(--radius-xs);
+}
+
+.test-fallback-view {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+/* =========================================================
+   LIVE ESP32-CAM STREAM VIEWPORT & CONTROLS
+========================================================= */
+.lf-esp-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 6px;
+}
+
+.lf-ctrl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-card);
+  background: var(--bg-card);
+  color: var(--text-2);
+  transition: var(--transition);
+  cursor: pointer;
+}
+
+.lf-ctrl-btn:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-0);
+  border-color: var(--border-card-hover);
+}
+
+.lf-ctrl-btn.active {
+  background: var(--accent-amber-dim);
+  border-color: var(--accent-amber);
+  color: var(--accent-amber);
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
+}
+
+.esp-ip-pill {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-cyan-dim);
+  color: var(--accent-cyan);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  margin-left: 6px;
+}
+
+.feed-mjpeg-stream {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  z-index: 2;
+}
+
+.feed-mjpeg-stream.stream-error {
+  display: none !important;
+}
+
+.dot-live {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-emerald);
+  box-shadow: 0 0 6px var(--accent-emerald);
+  margin-right: 4px;
+  animation: blink 1.2s infinite;
+}
+
+/* Quick Driving D-Pad Overlay */
+.esp-dpad-overlay {
+  position: absolute;
+  bottom: 28px;
+  right: 12px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: rgba(14, 18, 26, 0.85);
+  backdrop-filter: blur(8px);
+  padding: 5px;
+  border-radius: var(--radius-m);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+.dpad-mid {
+  display: flex;
+  gap: 2px;
+}
+
+.dpad-btn {
+  width: 24px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: var(--accent-cyan);
+  font-size: 10px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.dpad-btn:hover {
+  background: var(--accent-cyan);
+  color: #04121a;
+  transform: scale(1.08);
+}
+
+.dpad-btn:active,
+.dpad-btn.active {
+  background: var(--accent-cyan) !important;
+  color: #04121a !important;
+  transform: scale(1.15);
+  box-shadow: 0 0 10px var(--accent-cyan);
+}
+
+.dpad-stop.active {
+  background: var(--accent-rose) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 10px var(--accent-rose);
+}
+
+.dpad-stop {
+  color: var(--accent-rose);
+}
+
+.dpad-stop:hover {
+  background: var(--accent-rose);
+  color: #ffffff;
+}
+
+.drive-tag {
+  color: var(--text-3);
+  transition: all 0.2s ease;
+}
+
+.drive-tag.active {
+  color: var(--accent-cyan);
+  background: rgba(56, 189, 248, 0.25);
+  border-color: var(--accent-cyan);
+  font-weight: 800;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+}
+
+/* Multi-Camera Feed Switcher Strip */
+.feed-tabs-strip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-subtle);
+  overflow-x: auto;
+  flex: none;
+}
+
+.feed-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-card);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-2);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--transition);
+}
+
+.feed-tab-btn:hover {
+  border-color: var(--border-card-hover);
+  color: var(--text-0);
+}
+
+.feed-tab-btn.active {
+  background: var(--accent-cyan-dim);
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  font-weight: 700;
+}
+
+.rec-dot-sm {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent-emerald);
+  flex: none;
+}
+
+.rec-dot-sm.active {
+  background: var(--accent-rose);
+  animation: blink 1.2s infinite;
+}
+
+.ft-name {
+  font-weight: 700;
+}
+
+.ft-ip {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-3);
+}
+
+.feed-tab-btn.active .ft-ip {
+  color: var(--accent-cyan);
+}
+
+/* Firmware Guide Styling */
+.esp-firmware-guide {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.esp-fw-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.esp-code-container {
+  background: #06090f;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-s);
+  padding: 10px 12px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.esp-code {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: #7dd3fc;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.esp-hw-specs-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.hw-spec-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-s);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.hw-spec-card b {
+  font-size: 10px;
+  color: var(--text-0);
+}
+
+.hw-spec-card span {
+  font-size: 10px;
+  color: var(--accent-cyan);
+  font-family: var(--mono);
+}
+
+/* =========================================================
+   MULTI-CAMERA SPLIT GRID VIEW STYLING
+========================================================= */
+.strip-divider {
+  width: 1px;
+  height: 14px;
+  background: var(--border-card);
+  margin: 0 2px;
+}
+
+.livefeed-grid-mode {
+  flex: 0 0 240px;
+}
+
+.lf-body-grid {
+  padding: 6px;
+  background: #04070d;
+}
+
+.multi-camera-grid {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  height: 100%;
+}
+
+.multi-camera-grid.grid-2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.multi-camera-grid.grid-4 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+.grid-cam-tile {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-s);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  cursor: pointer;
+  transition: var(--transition);
+  position: relative;
+}
+
+.grid-cam-tile:hover {
+  border-color: var(--accent-cyan);
+  transform: scale(1.01);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+.grid-cam-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 8px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-0);
+  flex: none;
+}
+
+.grid-cam-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.grid-cam-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.grid-cam-screen {
+  flex: 1;
+  position: relative;
+  background: #030508;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.grid-synthetic-view {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--text-3);
+  font-size: 10px;
+}
+
+.grid-synthetic-view svg {
+  color: var(--accent-cyan);
+  opacity: 0.6;
+}
+
+.grid-cam-osd {
+  position: absolute;
+  bottom: 4px;
+  left: 6px;
+  right: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: 8.5px;
+  color: #bae6fd;
+  background: rgba(4, 7, 12, 0.7);
+  padding: 1px 5px;
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+
+
+
