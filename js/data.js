@@ -520,7 +520,7 @@ function switchHydraStation(stationId) {
     state.selectedRoverId = null;
     state.selectedHazardId = null;
     state.activeTargetId = 'ALL';
-    state.liveFeedRoverId = rovers.find(r => r.status === 'Deployed' || r.isEsp32)?.id || rovers[0]?.id || null;
+    state.liveFeedRoverId = null;
   }
 
   console.log(`[HYDRA] Switched to Station: ${station.name} (${station.state}) — ${station.rovers.length} local rovers, ${station.hazards.length} hazards.`);

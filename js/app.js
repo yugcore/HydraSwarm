@@ -179,8 +179,6 @@ document.addEventListener('click', (e) => {
       state.deployModalHazardId = null;
       if (state.mode === 'live') {
         syncLiveHazards();
-        const firstEsp = rovers.find(r => r.isEsp32);
-        if (firstEsp) state.liveFeedRoverId = firstEsp.id;
       }
       render();
       break;
@@ -198,11 +196,22 @@ document.addEventListener('click', (e) => {
     case 'sync-hazards':
       syncLiveHazards();
       break;
+    case 'map-zoom-in':
+      if (typeof HYDRA_MAP_INTERACTIONS !== 'undefined') HYDRA_MAP_INTERACTIONS.zoomBy(0.88);
+      break;
+    case 'map-zoom-out':
+      if (typeof HYDRA_MAP_INTERACTIONS !== 'undefined') HYDRA_MAP_INTERACTIONS.zoomBy(1.14);
+      break;
+    case 'map-reset-zoom':
+      if (typeof HYDRA_MAP_INTERACTIONS !== 'undefined') HYDRA_MAP_INTERACTIONS.reset();
+      break;
     case 'select-hazard':
+      if (typeof HYDRA_MAP_INTERACTIONS !== 'undefined' && HYDRA_MAP_INTERACTIONS.hasDragged) break;
       state.selectedHazardId = state.selectedHazardId === id ? null : id;
       render();
       break;
     case 'select-rover': {
+      if (typeof HYDRA_MAP_INTERACTIONS !== 'undefined' && HYDRA_MAP_INTERACTIONS.hasDragged) break;
       const r = byId(rovers, id);
       if (r && (r.status === 'Offline' || r.status === 'Unavailable')) {
         break;
@@ -450,6 +459,9 @@ function init() {
   }
   if (typeof switchHydraStation === 'function') {
     switchHydraStation(state.selectedStationId || 'guwahati');
+  }
+  if (typeof HYDRA_MAP_INTERACTIONS !== 'undefined') {
+    HYDRA_MAP_INTERACTIONS.init();
   }
   render();
   if (state.mode === 'live') {

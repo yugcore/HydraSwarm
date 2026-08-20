@@ -9,7 +9,221 @@ let currentViewBox = { x: 0, y: 0, w: 1000, h: 640 };
 function resetMapViewBox() {
   if (viewBoxAnimationId) cancelAnimationFrame(viewBoxAnimationId);
   currentViewBox = { x: 0, y: 0, w: 1000, h: 640 };
+  if (typeof HYDRA_MAP_INTERACTIONS !== 'undefined') {
+    HYDRA_MAP_INTERACTIONS.applyViewBox();
+  }
 }
+
+/* =========================================================
+   HYDRA INTERACTIVE PAN & ZOOM ENGINE
+========================================================= */
+const HYDRA_MAP_INTERACTIONS = {
+  isPanning: false,
+  hasDragged: false,
+  startMouse: { x: 0, y: 0 },
+  startVb: { x: 0, y: 0 },
+  touchStartDist: 0,
+  touchStartW: 1000,
+  initialized: false,
+
+  init() {
+    if (this.initialized) return;
+    this.initialized = true;
+
+    document.addEventListener('mousedown', (e) => this.onMouseDown(e));
+    document.addEventListener('mousemove', (e) => this.onMouseMove(e));
+    document.addEventListener('mouseup', (e) => this.onMouseUp(e));
+
+    // Non-passive wheel listener on map-wrap container
+    document.addEventListener('wheel', (e) => this.onWheel(e), { passive: false });
+    
+    // Double click to zoom in
+    document.addEventListener('dblclick', (e) => this.onDblClick(e));
+
+    // Touch support
+    document.addEventListener('touchstart', (e) => this.onTouchStart(e), { passive: false });
+    document.addEventListener('touchmove', (e) => this.onTouchMove(e), { passive: false });
+    document.addEventListener('touchend', (e) => this.onTouchEnd(e));
+  },
+
+  onMouseDown(e) {
+    const mapWrap = e.target.closest('.map-wrap');
+    if (!mapWrap) return;
+    // Don't initiate pan if clicked on toolbar, HUD, legend, controls, or button
+    if (e.target.closest('.map-toolbar') || e.target.closest('.map-controls') || e.target.closest('.target-hud-overlay') || e.target.closest('.map-legend') || e.target.closest('button')) {
+      return;
+    }
+
+    this.isPanning = true;
+    this.hasDragged = false;
+    this.startMouse = { x: e.clientX, y: e.clientY };
+    this.startVb = { x: currentViewBox.x, y: currentViewBox.y };
+    mapWrap.classList.add('panning');
+  },
+
+  onMouseMove(e) {
+    if (!this.isPanning) return;
+    const mapWrap = document.querySelector('.map-wrap');
+    const svgEl = document.querySelector('.map-svg');
+    if (!mapWrap || !svgEl) return;
+
+    const dx = e.clientX - this.startMouse.x;
+    const dy = e.clientY - this.startMouse.y;
+
+    if (Math.hypot(dx, dy) > 5) {
+      this.hasDragged = true;
+    }
+
+    const rect = mapWrap.getBoundingClientRect();
+    const scaleX = currentViewBox.w / Math.max(1, rect.width);
+    const scaleY = currentViewBox.h / Math.max(1, rect.height);
+
+    currentViewBox.x = this.startVb.x - dx * scaleX;
+    currentViewBox.y = this.startVb.y - dy * scaleY;
+
+    // Boundaries check
+    currentViewBox.x = Math.max(-600, Math.min(1600 - currentViewBox.w, currentViewBox.x));
+    currentViewBox.y = Math.max(-400, Math.min(1040 - currentViewBox.h, currentViewBox.y));
+
+    this.applyViewBox();
+  },
+
+  onMouseUp(e) {
+    if (this.isPanning) {
+      this.isPanning = false;
+      const mapWrap = document.querySelector('.map-wrap');
+      if (mapWrap) mapWrap.classList.remove('panning');
+    }
+  },
+
+  onWheel(e) {
+    const mapWrap = e.target.closest('.map-wrap');
+    if (!mapWrap) return;
+    // Only zoom if over map
+    e.preventDefault();
+
+    const rect = mapWrap.getBoundingClientRect();
+    const mouseRelX = Math.max(0, Math.min(1, (e.clientX - rect.left) / Math.max(1, rect.width)));
+    const mouseRelY = Math.max(0, Math.min(1, (e.clientY - rect.top) / Math.max(1, rect.height)));
+
+    const mouseSvgX = currentViewBox.x + mouseRelX * currentViewBox.w;
+    const mouseSvgY = currentViewBox.y + mouseRelY * currentViewBox.h;
+
+    // Smooth, gentle zoom sensitivity (4-6% step per scroll tick)
+    const clampedDelta = Math.max(-50, Math.min(50, e.deltaY));
+    const zoomFactor = clampedDelta < 0 ? 0.93 : 1.07;
+    this.zoomAtPoint(mouseSvgX, mouseSvgY, mouseRelX, mouseRelY, zoomFactor);
+  },
+
+  onDblClick(e) {
+    const mapWrap = e.target.closest('.map-wrap');
+    if (!mapWrap || e.target.closest('button') || e.target.closest('.map-toolbar') || e.target.closest('.map-controls')) return;
+
+    const rect = mapWrap.getBoundingClientRect();
+    const mouseRelX = (e.clientX - rect.left) / Math.max(1, rect.width);
+    const mouseRelY = (e.clientY - rect.top) / Math.max(1, rect.height);
+    const mouseSvgX = currentViewBox.x + mouseRelX * currentViewBox.w;
+    const mouseSvgY = currentViewBox.y + mouseRelY * currentViewBox.h;
+
+    this.zoomAtPoint(mouseSvgX, mouseSvgY, mouseRelX, mouseRelY, 0.78);
+  },
+
+  zoomAtPoint(svgX, svgY, relX, relY, factor) {
+    const newW = Math.max(160, Math.min(2200, currentViewBox.w * factor));
+    const newH = newW * (640 / 1000);
+
+    currentViewBox.x = svgX - relX * newW;
+    currentViewBox.y = svgY - relY * newH;
+    currentViewBox.w = newW;
+    currentViewBox.h = newH;
+
+    // Constrain boundaries
+    currentViewBox.x = Math.max(-600, Math.min(1600 - currentViewBox.w, currentViewBox.x));
+    currentViewBox.y = Math.max(-400, Math.min(1040 - currentViewBox.h, currentViewBox.y));
+
+    this.applyViewBox();
+  },
+
+  zoomBy(factor) {
+    const centerX = currentViewBox.x + currentViewBox.w / 2;
+    const centerY = currentViewBox.y + currentViewBox.h / 2;
+    this.zoomAtPoint(centerX, centerY, 0.5, 0.5, factor);
+  },
+
+  reset() {
+    animateViewBoxTo({ x: 0, y: 0, w: 1000, h: 640 });
+  },
+
+  applyViewBox() {
+    const svgEl = document.querySelector('.map-svg');
+    if (svgEl) {
+      svgEl.setAttribute('viewBox', `${currentViewBox.x.toFixed(1)} ${currentViewBox.y.toFixed(1)} ${currentViewBox.w.toFixed(1)} ${currentViewBox.h.toFixed(1)}`);
+    }
+    const zoomBadge = document.querySelector('.map-zoom-val');
+    if (zoomBadge) {
+      const zoomPct = Math.round((1000 / currentViewBox.w) * 100);
+      zoomBadge.textContent = `${zoomPct}%`;
+    }
+  },
+
+  onTouchStart(e) {
+    const mapWrap = e.target.closest('.map-wrap');
+    if (!mapWrap) return;
+
+    if (e.touches.length === 1) {
+      const touch = e.touches[0];
+      this.isPanning = true;
+      this.hasDragged = false;
+      this.startMouse = { x: touch.clientX, y: touch.clientY };
+      this.startVb = { x: currentViewBox.x, y: currentViewBox.y };
+    } else if (e.touches.length === 2) {
+      e.preventDefault();
+      const t1 = e.touches[0];
+      const t2 = e.touches[1];
+      this.touchStartDist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+      this.touchStartW = currentViewBox.w;
+    }
+  },
+
+  onTouchMove(e) {
+    const mapWrap = document.querySelector('.map-wrap');
+    if (!mapWrap) return;
+
+    if (e.touches.length === 1 && this.isPanning) {
+      const touch = e.touches[0];
+      const dx = touch.clientX - this.startMouse.x;
+      const dy = touch.clientY - this.startMouse.y;
+      if (Math.hypot(dx, dy) > 5) this.hasDragged = true;
+
+      const rect = mapWrap.getBoundingClientRect();
+      const scaleX = currentViewBox.w / Math.max(1, rect.width);
+      const scaleY = currentViewBox.h / Math.max(1, rect.height);
+
+      currentViewBox.x = this.startVb.x - dx * scaleX;
+      currentViewBox.y = this.startVb.y - dy * scaleY;
+      this.applyViewBox();
+    } else if (e.touches.length === 2 && this.touchStartDist > 0) {
+      e.preventDefault();
+      const t1 = e.touches[0];
+      const t2 = e.touches[1];
+      const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+      const factor = 1 + (this.touchStartDist - dist) * 0.0008;
+      const centerX = (t1.clientX + t2.clientX) / 2;
+      const centerY = (t1.clientY + t2.clientY) / 2;
+      const rect = mapWrap.getBoundingClientRect();
+      const relX = (centerX - rect.left) / Math.max(1, rect.width);
+      const relY = (centerY - rect.top) / Math.max(1, rect.height);
+      const svgX = currentViewBox.x + relX * currentViewBox.w;
+      const svgY = currentViewBox.y + relY * currentViewBox.h;
+      this.zoomAtPoint(svgX, svgY, relX, relY, factor);
+    }
+  },
+
+  onTouchEnd(e) {
+    if (e.touches.length < 2) this.touchStartDist = 0;
+    if (e.touches.length === 0) this.isPanning = false;
+  }
+};
 
 function getActiveTargets() {
   const deployedHazardIds = new Set();
@@ -197,7 +411,7 @@ function renderTargetHudOverlay() {
   </div>`;
 }
 
-/* ---------- SVG MAP RENDERING ---------- */
+/* ---------- SVG MAP RENDERING (TACTICAL GIS & HIGH-FIDELITY CARTOGRAPHY) ---------- */
 function renderMapSvg() {
   const isTargetFocused = state.activeTargetId && state.activeTargetId !== 'ALL';
   const focusedHazardId = state.activeTargetId;
@@ -206,7 +420,141 @@ function renderMapSvg() {
   const roverFill = isLight ? '#ffffff' : '#1a2230';
   const roverStroke = isLight ? '#334155' : '#cbd5e1';
 
-  // Hazard markers
+  const activeStation = (typeof getStationById === 'function') 
+    ? getStationById(state.selectedStationId || currentStationId || 'guwahati')
+    : HYDRA_STATIONS[0];
+
+  const vb = currentViewBox;
+
+  // Tactical Colors & Shading
+  const mapBgStart = isLight ? '#f4f6f9' : '#0b0f17';
+  const mapBgEnd = isLight ? '#e2e8f0' : '#05070a';
+  
+  const waterGradStart = isLight ? '#38bdf8' : '#0284c7';
+  const waterGradEnd = isLight ? '#0284c7' : '#082f49';
+  const waterStroke = isLight ? '#0284c7' : '#38bdf8';
+  const waterShoreGlow = isLight ? 'rgba(56, 189, 248, 0.5)' : 'rgba(56, 189, 248, 0.25)';
+
+  const gridMinor = isLight ? 'rgba(100, 116, 139, 0.12)' : 'rgba(56, 189, 248, 0.06)';
+  const gridMajor = isLight ? 'rgba(100, 116, 139, 0.35)' : 'rgba(56, 189, 248, 0.22)';
+  const rulerTextColor = isLight ? '#64748b' : 'rgba(148, 163, 184, 0.6)';
+
+  const terrainStroke = isLight ? 'rgba(100, 116, 139, 0.32)' : 'rgba(148, 163, 184, 0.18)';
+  const depotFill = isLight ? '#ffffff' : '#111726';
+  const depotStroke = isLight ? '#0284c7' : '#38bdf8';
+  const depotTextColor = isLight ? '#0f172a' : '#f8fafc';
+
+  // 1. GIS Longitude / Latitude Coordinate Rulers
+  const baseLat = activeStation.lat || 26.14;
+  const baseLon = activeStation.lon || 91.73;
+
+  const topRulers = [120, 260, 400, 540, 680, 820, 940].map(x => {
+    const lonVal = (baseLon + (x - 500) * 0.0006).toFixed(3);
+    return `
+      <g transform="translate(${x}, 0)" opacity="0.65">
+        <line x1="0" y1="0" x2="0" y2="7" stroke="${gridMajor}" stroke-width="1"/>
+        <text x="3" y="10" font-size="7px" font-family="var(--mono)" fill="${rulerTextColor}">${lonVal}°E</text>
+      </g>
+    `;
+  }).join('');
+
+  const leftRulers = [80, 180, 290, 400, 510, 610].map(y => {
+    const latVal = (baseLat + (320 - y) * 0.0006).toFixed(3);
+    return `
+      <g transform="translate(0, ${y})" opacity="0.65">
+        <line x1="0" y1="0" x2="7" y2="0" stroke="${gridMajor}" stroke-width="1"/>
+        <text x="9" y="3" font-size="7px" font-family="var(--mono)" fill="${rulerTextColor}">${latVal}°N</text>
+      </g>
+    `;
+  }).join('');
+
+  // 2. Tactical Radar Range Rings from Station HQ
+  const primaryDepot = activeStation.depots?.[0] || { x: 160, y: 540, name: 'Command HQ' };
+  const radarRangeRingsSvg = `
+    <g class="radar-group" opacity="${isLight ? '0.5' : '0.4'}">
+      <line x1="${primaryDepot.x - 380}" y1="${primaryDepot.y}" x2="${primaryDepot.x + 380}" y2="${primaryDepot.y}" stroke="${gridMajor}" stroke-width="0.8" stroke-dasharray="3 5"/>
+      <line x1="${primaryDepot.x}" y1="${primaryDepot.y - 380}" x2="${primaryDepot.x}" y2="${primaryDepot.y + 380}" stroke="${gridMajor}" stroke-width="0.8" stroke-dasharray="3 5"/>
+      
+      <circle cx="${primaryDepot.x}" cy="${primaryDepot.y}" r="110" fill="none" stroke="${gridMajor}" stroke-width="0.8" stroke-dasharray="4 4"/>
+      <text x="${primaryDepot.x + 114}" y="${primaryDepot.y - 3}" font-size="6.8px" font-family="var(--mono)" fill="${rulerTextColor}">5 KM RADAR</text>
+
+      <circle cx="${primaryDepot.x}" cy="${primaryDepot.y}" r="220" fill="none" stroke="${gridMajor}" stroke-width="0.8" stroke-dasharray="4 4"/>
+      <text x="${primaryDepot.x + 224}" y="${primaryDepot.y - 3}" font-size="6.8px" font-family="var(--mono)" fill="${rulerTextColor}">10 KM RADAR</text>
+
+      <circle cx="${primaryDepot.x}" cy="${primaryDepot.y}" r="330" fill="none" stroke="${gridMajor}" stroke-width="0.8" stroke-dasharray="4 4"/>
+      <text x="${primaryDepot.x + 334}" y="${primaryDepot.y - 3}" font-size="6.8px" font-family="var(--mono)" fill="${rulerTextColor}">15 KM RADAR</text>
+    </g>
+  `;
+
+  // 3. Topographic Contours with Altitude Stamps
+  const altitudes = ['+80m', '+160m', '+240m', '+360m', '+480m', '+650m', '+920m', '+1400m'];
+  const terrainPathsSvg = (activeStation.mapFeatures?.terrainPaths || []).map((d, idx) => {
+    return `
+      <g class="terrain-group">
+        <path class="terrain-line" stroke="${terrainStroke}" stroke-width="${idx % 2 === 0 ? '1.3' : '0.8'}" stroke-dasharray="${idx % 2 === 0 ? 'none' : '4 3'}" d="${d}"></path>
+      </g>
+    `;
+  }).join('');
+
+  // 4. Landmarks with Clean Cartographic Labels
+  const landmarksSvg = (activeStation.mapFeatures?.landmarks || []).map(lm => {
+    let iconSvg = `<circle r="3" fill="var(--accent-cyan)"/>`;
+    if (lm.icon === 'hill' || lm.icon === 'peak' || lm.icon === 'slide') {
+      iconSvg = `<polygon points="0,-5 4,3 -4,3" fill="var(--accent-amber)"/>`;
+    } else if (lm.icon === 'water' || lm.icon === 'glacier') {
+      iconSvg = `<circle r="3.5" fill="none" stroke="var(--accent-cyan)" stroke-width="1.4"/><circle r="1.5" fill="var(--accent-cyan)"/>`;
+    } else if (lm.icon === 'bridge' || lm.icon === 'dam' || lm.icon === 'canal') {
+      iconSvg = `<rect x="-3.5" y="-2.5" width="7" height="5" rx="1" fill="var(--accent-emerald)"/>`;
+    } else if (lm.icon === 'port' || lm.icon === 'coast') {
+      iconSvg = `<circle r="3" fill="var(--accent-blue)"/>`;
+    }
+
+    return `
+      <g class="map-landmark" transform="translate(${lm.x},${lm.y})">
+        ${iconSvg}
+        <text x="8" y="3" class="marker-label" font-size="8px" font-weight="600" letter-spacing="0.4px">${lm.name.toUpperCase()}</text>
+      </g>
+    `;
+  }).join('');
+
+  // 5. Depots with Command Bunker Symbol
+  const depotsSvg = (activeStation.depots || []).map((dp, idx) => `
+    <g class="map-depot-marker" transform="translate(${dp.x},${dp.y})">
+      <circle r="12" fill="none" stroke="var(--accent-cyan)" stroke-width="0.8" opacity="0.4" stroke-dasharray="3 3"/>
+      <polygon points="0,-9 8,-4.5 8,4.5 0,9 -8,4.5 -8,-4.5" fill="${depotFill}" stroke="${depotStroke}" stroke-width="1.6"/>
+      <circle r="2.8" fill="var(--accent-cyan)"/>
+      <text x="14" y="3.5" class="marker-label" fill="${depotTextColor}" font-size="8.5px" font-weight="700" letter-spacing="0.4px">${(dp.name || 'HQ BASE').toUpperCase()}</text>
+    </g>
+  `).join('');
+
+  // 6. Military Compass Rose (Top-Right)
+  const compassRoseSvg = `
+    <g class="compass-rose" transform="translate(940, 52)" opacity="${isLight ? '0.85' : '0.7'}">
+      <circle r="22" fill="none" stroke="${gridMajor}" stroke-width="1.2" stroke-dasharray="2 3"/>
+      <line x1="0" y1="-26" x2="0" y2="26" stroke="${gridMajor}" stroke-width="1"/>
+      <line x1="-26" y1="0" x2="26" y2="0" stroke="${gridMajor}" stroke-width="1"/>
+      <polygon points="0,-22 4,-5 0,-8 -4,-5" fill="var(--accent-rose)"/>
+      <polygon points="0,22 4,5 0,8 -4,5" fill="${rulerTextColor}"/>
+      <text x="0" y="-27" text-anchor="middle" font-size="8px" font-weight="800" font-family="var(--mono)" fill="var(--accent-rose)">N</text>
+      <text x="31" y="2.5" text-anchor="start" font-size="7px" font-weight="700" font-family="var(--mono)" fill="${rulerTextColor}">E</text>
+      <text x="0" y="34" text-anchor="middle" font-size="7px" font-weight="700" font-family="var(--mono)" fill="${rulerTextColor}">S</text>
+      <text x="-31" y="2.5" text-anchor="end" font-size="7px" font-weight="700" font-family="var(--mono)" fill="${rulerTextColor}">W</text>
+    </g>
+  `;
+
+  // 7. Tactical Scale Bar (Bottom-Left)
+  const scaleBarSvg = `
+    <g class="scale-bar" transform="translate(40, 615)" opacity="${isLight ? '0.85' : '0.7'}">
+      <rect x="0" y="0" width="120" height="4" fill="none" stroke="${depotStroke}" stroke-width="1"/>
+      <rect x="0" y="0" width="60" height="4" fill="${depotStroke}"/>
+      <text x="0" y="-4" font-size="7px" font-family="var(--mono)" font-weight="700" fill="${rulerTextColor}">0</text>
+      <text x="60" y="-4" text-anchor="middle" font-size="7px" font-family="var(--mono)" font-weight="700" fill="${rulerTextColor}">2.5 KM</text>
+      <text x="120" y="-4" text-anchor="end" font-size="7px" font-family="var(--mono)" font-weight="700" fill="${rulerTextColor}">5.0 KM</text>
+      <text x="135" y="4" font-size="7px" font-family="var(--mono)" font-weight="600" fill="${rulerTextColor}">[SCALE 1:50,000 // WGS-84 GIS]</text>
+    </g>
+  `;
+
+  // 8. Hazard Markers with Clean Text Labels
   const hazardMarkers = hazards.map(h => {
     const isSelected = state.selectedHazardId === h.id;
     const isTarget = isTargetFocused && focusedHazardId === h.id;
@@ -215,18 +563,20 @@ function renderMapSvg() {
 
     return `
     <g class="marker marker-hazard ${isDimmed ? 'dimmed' : ''}" style="${isDimmed ? 'opacity:0.2;' : ''}" data-action="select-hazard" data-id="${h.id}" transform="translate(${h.x},${h.y})">
-      <circle class="pulse" r="${isTarget ? 14 : 9}" fill="${sevColor}"></circle>
-      <circle r="${isTarget ? 9 : 7}" fill="${markerInnerFill}" stroke="${sevColor}" stroke-width="${isTarget ? 3.0 : isSelected ? 2.6 : 1.8}"></circle>
-      <g transform="translate(-4.5,-4.5) scale(0.42)" stroke="${sevColor}" fill="none" stroke-width="1.8">${hazardIcons[h.type] || ''}</g>
-      ${!isDimmed ? `<text class="marker-label" x="${isTarget ? 14 : 11}" y="3.5" font-weight="${isTarget ? '700' : '600'}">${h.name.split(' — ')[0].split(',')[0]}</text>` : ''}
-      ${isTarget ? `<circle r="36" fill="none" stroke="var(--accent-amber)" stroke-width="0.8" stroke-dasharray="3 3" opacity="0.6"/>` : ''}
+      <circle class="pulse" r="${isTarget ? 15 : 10}" fill="${sevColor}"></circle>
+      <circle r="${isTarget ? 10 : 8}" fill="${markerInnerFill}" stroke="${sevColor}" stroke-width="${isTarget ? 3.2 : isSelected ? 2.8 : 2.0}"></circle>
+      <g transform="translate(-5,-5) scale(0.46)" stroke="${sevColor}" fill="none" stroke-width="1.9">${hazardIcons[h.type] || ''}</g>
+      ${!isDimmed ? `
+        <text class="marker-label" x="${isTarget ? 16 : 13}" y="3.5" font-size="9px" font-weight="${isTarget ? '700' : '600'}">${h.name.split(' — ')[0].split(',')[0]}</text>
+      ` : ''}
+      ${isTarget ? `<circle r="38" fill="none" stroke="var(--accent-amber)" stroke-width="1.2" stroke-dasharray="4 4" opacity="0.85"/>` : ''}
     </g>`;
   }).join('');
 
   const isLive = state.mode === 'live';
   const activeFleet = isLive ? rovers.filter(r => r.isEsp32) : rovers;
 
-  // Route paths
+  // 9. Laser Trajectory Routes with Multi-Layer Glow
   const routes = activeFleet.filter(r => r.hazardId).map(r => {
     const h = byId(hazards, r.hazardId);
     if (!h) return '';
@@ -238,14 +588,13 @@ function renderMapSvg() {
 
     return `
     <g class="route-group" style="${isDimmed ? 'opacity:0.15;' : ''}">
-      <!-- Traveled path (solid cyan) -->
-      <path d="M ${home.x} ${home.y} Q ${p1.x} ${p1.y} ${telem.x} ${telem.y}" fill="none" stroke="var(--accent-cyan)" stroke-width="${isTarget ? 2.2 : 1.6}" opacity="0.85"></path>
-      <!-- Remaining route (dashed amber/cyan) -->
-      <path class="route-path ${isTarget ? 'highlighted' : ''}" d="M ${telem.x} ${telem.y} Q ${p1.x} ${p1.y} ${h.x} ${h.y}" stroke="${isTarget ? 'var(--accent-amber)' : 'rgba(56, 189, 248, 0.6)'}"></path>
+      <path d="M ${home.x} ${home.y} Q ${p1.x} ${p1.y} ${telem.x} ${telem.y}" fill="none" stroke="var(--accent-cyan)" stroke-width="5" opacity="0.18"></path>
+      <path d="M ${home.x} ${home.y} Q ${p1.x} ${p1.y} ${telem.x} ${telem.y}" fill="none" stroke="var(--accent-cyan)" stroke-width="${isTarget ? 2.6 : 1.8}" opacity="0.95"></path>
+      <path class="route-path ${isTarget ? 'highlighted' : ''}" d="M ${telem.x} ${telem.y} Q ${p1.x} ${p1.y} ${h.x} ${h.y}" stroke="${isTarget ? 'var(--accent-amber)' : 'rgba(56, 189, 248, 0.75)'}"></path>
     </g>`;
   }).join('');
 
-  // Rover markers with real-time positions & heading orientation (Only live hardware in Live mode)
+  // 10. Rover markers
   const roverMarkers = activeFleet.map(r => {
     const telem = HYDRA_TELEMETRY.getRoverTelemetry(r.id);
     const isSelected = state.selectedRoverId === r.id;
@@ -278,42 +627,6 @@ function renderMapSvg() {
     </g>`;
   }).join('');
 
-  const activeStation = (typeof getStationById === 'function') 
-    ? getStationById(state.selectedStationId || currentStationId || 'guwahati')
-    : HYDRA_STATIONS[0];
-
-  const vb = currentViewBox;
-
-  const mapBgStart = isLight ? '#f8fafc' : '#0e121a';
-  const mapBgEnd = isLight ? '#edf2f7' : '#07090d';
-  const coastFill = isLight ? '#e2e8f0' : '#0a0d13';
-  const terrainStroke = isLight ? '#cbd5e1' : '#151b27';
-  const depotFill = isLight ? '#ffffff' : '#141a26';
-  const depotStroke = isLight ? '#94a3b8' : 'var(--border-card)';
-  const depotTextColor = isLight ? '#64748b' : 'var(--text-3)';
-
-  // Dynamic terrain paths from active station
-  const terrainPathsSvg = (activeStation.mapFeatures?.terrainPaths || []).map(d => 
-    `<path class="terrain-line" stroke="${terrainStroke}" d="${d}"></path>`
-  ).join('');
-
-  // Dynamic landmark labels from active station
-  const landmarksSvg = (activeStation.mapFeatures?.landmarks || []).map(lm => `
-    <g class="map-landmark" transform="translate(${lm.x},${lm.y})" opacity="0.6">
-      <circle r="2.8" fill="var(--text-3)"></circle>
-      <text x="7" y="3" font-size="8px" font-weight="600" fill="var(--text-3)" letter-spacing="0.5px">${lm.name.toUpperCase()}</text>
-    </g>
-  `).join('');
-
-  // Dynamic depot markers from active station
-  const depotsSvg = (activeStation.depots || []).map(dp => `
-    <g class="map-depot-marker" transform="translate(${dp.x},${dp.y})" opacity="0.85">
-      <rect x="-8" y="-8" width="16" height="16" rx="4" fill="${depotFill}" stroke="${depotStroke}" stroke-width="1.3"></rect>
-      <circle r="3.2" fill="var(--accent-amber)"></circle>
-      <text x="12" y="3.5" class="marker-label" fill="${depotTextColor}" font-weight="700">${dp.name.toUpperCase()}</text>
-    </g>
-  `).join('');
-
   return `
   <svg class="map-svg" viewBox="${vb.x} ${vb.y} ${vb.w} ${vb.h}" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Operations map">
     <defs>
@@ -321,18 +634,60 @@ function renderMapSvg() {
         <stop offset="0%" stop-color="${mapBgStart}"/>
         <stop offset="100%" stop-color="${mapBgEnd}"/>
       </linearGradient>
+      <linearGradient id="waterGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${waterGradStart}" stop-opacity="${isLight ? '0.35' : '0.45'}"/>
+        <stop offset="100%" stop-color="${waterGradEnd}" stop-opacity="${isLight ? '0.2' : '0.3'}"/>
+      </linearGradient>
+      <radialGradient id="hazardGlowSevere" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#f43f5e" stop-opacity="0.35"/>
+        <stop offset="60%" stop-color="#f43f5e" stop-opacity="0.10"/>
+        <stop offset="100%" stop-color="#f43f5e" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="hazardGlowModerate" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.35"/>
+        <stop offset="60%" stop-color="#f59e0b" stop-opacity="0.10"/>
+        <stop offset="100%" stop-color="#f59e0b" stop-opacity="0"/>
+      </radialGradient>
+      <pattern id="gisMinorGrid" width="60" height="60" patternUnits="userSpaceOnUse">
+        <path d="M 60 0 L 0 0 0 60" fill="none" stroke="${gridMinor}" stroke-width="0.7" stroke-dasharray="2 3"/>
+        <path d="M 0 -2.5 L 0 2.5 M -2.5 0 L 2.5 0" stroke="${gridMajor}" stroke-width="0.8"/>
+      </pattern>
     </defs>
+
+    <!-- 1. Background -->
     <rect x="0" y="0" width="1000" height="640" fill="url(#bgGrad)"></rect>
-    <!-- Dynamic Coastline or River Channel for current station -->
-    <path class="coast-fill" fill="${coastFill}" d="${activeStation.mapFeatures?.coastOrRiverD || 'M0,0 L1000,0 L1000,470 Z'}"></path>
-    <!-- Station river/coastline label -->
-    <text x="30" y="35" font-size="10px" font-weight="700" fill="var(--text-3)" letter-spacing="1px" opacity="0.55">${(activeStation.mapFeatures?.riverName || activeStation.region).toUpperCase()}</text>
-    <!-- Dynamic contour lines -->
+
+    <!-- 2. Tactical GIS Grid -->
+    <rect x="0" y="0" width="1000" height="640" fill="url(#gisMinorGrid)"></rect>
+
+    <!-- 3. Dynamic Coastline or River Channel with Water Glow -->
+    <path class="coast-fill" fill="url(#waterGrad)" stroke="${waterStroke}" stroke-width="1.8" d="${activeStation.mapFeatures?.coastOrRiverD || 'M0,0 L1000,0 L1000,470 Z'}"></path>
+    <path fill="none" stroke="${waterShoreGlow}" stroke-width="3.5" opacity="0.35" d="${activeStation.mapFeatures?.coastOrRiverD || 'M0,0 L1000,0 L1000,470 Z'}"></path>
+
+    <!-- 4. Station Water Body Banner -->
+    <text x="30" y="32" class="marker-label" font-size="9.5px" font-weight="700" font-family="var(--mono)" fill="var(--accent-cyan)" letter-spacing="1px" opacity="0.75">${(activeStation.mapFeatures?.riverName || activeStation.region).toUpperCase()}</text>
+
+    <!-- 5. Dynamic contour lines with Altitude Stamps -->
     ${terrainPathsSvg}
-    <!-- Dynamic landmarks -->
+
+    <!-- 6. Radar Range Rings from Base -->
+    ${radarRangeRingsSvg}
+
+    <!-- 7. Dynamic landmarks -->
     ${landmarksSvg}
-    <!-- Dynamic depot markers -->
+
+    <!-- 8. Dynamic depot markers -->
     ${depotsSvg}
+
+    <!-- 9. Compass Rose & Scale Bar -->
+    ${compassRoseSvg}
+    ${scaleBarSvg}
+
+    <!-- 10. GIS Coordinate Rulers -->
+    ${topRulers}
+    ${leftRulers}
+
+    <!-- 11. Routes, Hazards, and Rovers -->
     ${routes}
     ${hazardMarkers}
     ${roverMarkers}
@@ -386,11 +741,25 @@ function renderMap() {
     ? `Live Disaster Feeds &middot; ${activeStation.state}` 
     : `${activeStation.shortName} &middot; ${activeStation.region}`;
 
+  const zoomPct = Math.round((1000 / Math.max(1, currentViewBox.w)) * 100);
+
   return `
   <div class="map-wrap">
     <div class="map-toolbar">
       <div class="map-chip"><span class="stat-dot ok"></span>${chipLabel}</div>
       ${renderMapViewSelector()}
+    </div>
+    <div class="map-controls">
+      <button class="map-ctrl-btn" data-action="map-zoom-in" title="Zoom In (+)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <span class="map-zoom-val">${zoomPct}%</span>
+      <button class="map-ctrl-btn" data-action="map-zoom-out" title="Zoom Out (−)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <button class="map-ctrl-btn" data-action="map-reset-zoom" title="Reset View (Center)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+      </button>
     </div>
     ${renderTargetHudOverlay()}
     ${renderMapSvg()}

@@ -920,6 +920,63 @@ input {
   min-height: 240px;
   background: var(--map-bg-start);
   overflow: hidden;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+.map-wrap.panning {
+  cursor: grabbing !important;
+}
+
+.map-controls {
+  position: absolute;
+  top: 50px;
+  right: 12px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-card);
+  backdrop-filter: blur(12px);
+  border-radius: var(--radius-m);
+  padding: 4px;
+  gap: 3px;
+  box-shadow: var(--shadow-bento);
+}
+
+.map-ctrl-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-s);
+  color: var(--text-1);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.map-ctrl-btn:hover {
+  background: var(--bg-pill-active);
+  color: var(--text-0);
+  border-color: var(--border-card);
+}
+
+.map-ctrl-btn:active {
+  transform: scale(0.92);
+}
+
+.map-zoom-val {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-2);
+  padding: 2px 2px;
+  user-select: none;
 }
 
 .map-toolbar {
@@ -1226,6 +1283,31 @@ svg.map-svg {
   stroke: var(--bg-canvas);
   stroke-width: 2.5px;
   stroke-linejoin: round;
+}
+
+.hazard-evac-zone {
+  animation: pulse-ring 3.5s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes pulse-ring {
+  0%, 100% { opacity: 0.75; }
+  50% { opacity: 0.35; }
+}
+
+.compass-rose text,
+.scale-bar text,
+.radar-group text {
+  user-select: none;
+  pointer-events: none;
+}
+
+.map-landmark {
+  pointer-events: none;
+}
+
+.map-depot-marker {
+  cursor: default;
 }
 
 [data-theme="dark"] .marker-label {
