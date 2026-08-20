@@ -193,19 +193,24 @@ function renderTargetHudOverlay() {
 function renderMapSvg() {
   const isTargetFocused = state.activeTargetId && state.activeTargetId !== 'ALL';
   const focusedHazardId = state.activeTargetId;
+  const isLight = state.theme === 'light';
+  const markerInnerFill = isLight ? '#ffffff' : '#121622';
+  const roverFill = isLight ? '#ffffff' : '#1a2230';
+  const roverStroke = isLight ? '#334155' : '#cbd5e1';
 
   // Hazard markers
   const hazardMarkers = hazards.map(h => {
     const isSelected = state.selectedHazardId === h.id;
     const isTarget = isTargetFocused && focusedHazardId === h.id;
     const isDimmed = isTargetFocused && !isTarget;
+    const sevColor = h.severity === 'severe' ? '#f43f5e' : h.severity === 'moderate' ? '#f59e0b' : '#0ea5e9';
 
     return `
     <g class="marker marker-hazard ${isDimmed ? 'dimmed' : ''}" style="${isDimmed ? 'opacity:0.2;' : ''}" data-action="select-hazard" data-id="${h.id}" transform="translate(${h.x},${h.y})">
-      <circle class="pulse" r="${isTarget ? 14 : 9}" fill="var(--accent-${h.severity === 'severe' ? 'red' : h.severity === 'moderate' ? 'amber' : 'teal'})"></circle>
-      <circle r="${isTarget ? 9 : 7}" fill="var(--bg-1)" stroke="var(--accent-${h.severity === 'severe' ? 'red' : h.severity === 'moderate' ? 'amber' : 'teal'})" stroke-width="${isTarget ? 3.0 : isSelected ? 2.6 : 1.6}"></circle>
-      <g transform="translate(-4.5,-4.5) scale(0.42)" stroke="var(--accent-${h.severity === 'severe' ? 'red' : h.severity === 'moderate' ? 'amber' : 'teal'})" fill="none" stroke-width="1.8">${hazardIcons[h.type] || ''}</g>
-      ${!isDimmed ? `<text class="marker-label" x="${isTarget ? 14 : 11}" y="3.5" font-weight="${isTarget ? '700' : '400'}">${h.name.split(' — ')[0].split(',')[0]}</text>` : ''}
+      <circle class="pulse" r="${isTarget ? 14 : 9}" fill="${sevColor}"></circle>
+      <circle r="${isTarget ? 9 : 7}" fill="${markerInnerFill}" stroke="${sevColor}" stroke-width="${isTarget ? 3.0 : isSelected ? 2.6 : 1.8}"></circle>
+      <g transform="translate(-4.5,-4.5) scale(0.42)" stroke="${sevColor}" fill="none" stroke-width="1.8">${hazardIcons[h.type] || ''}</g>
+      ${!isDimmed ? `<text class="marker-label" x="${isTarget ? 14 : 11}" y="3.5" font-weight="${isTarget ? '700' : '600'}">${h.name.split(' — ')[0].split(',')[0]}</text>` : ''}
       ${isTarget ? `<circle r="36" fill="none" stroke="var(--accent-amber)" stroke-width="0.8" stroke-dasharray="3 3" opacity="0.6"/>` : ''}
     </g>`;
   }).join('');
@@ -221,11 +226,11 @@ function renderMapSvg() {
     const p1 = HYDRA_TELEMETRY.getControlPoint(home, h);
 
     return `
-    <g class="route-group" style="${isDimmed ? 'opacity:0.2;' : ''}">
-      <!-- Traveled path (solid teal/blue) -->
-      <path d="M ${home.x} ${home.y} Q ${p1.x} ${p1.y} ${telem.x} ${telem.y}" fill="none" stroke="var(--accent-teal)" stroke-width="${isTarget ? 2.4 : 1.8}" opacity="0.9"></path>
-      <!-- Remaining route (dashed animated) -->
-      <path class="route-path ${isTarget ? 'highlighted' : ''}" d="M ${telem.x} ${telem.y} Q ${p1.x} ${p1.y} ${h.x} ${h.y}" stroke="${isTarget ? 'var(--accent-amber)' : 'var(--accent-blue)'}"></path>
+    <g class="route-group" style="${isDimmed ? 'opacity:0.15;' : ''}">
+      <!-- Traveled path (solid cyan) -->
+      <path d="M ${home.x} ${home.y} Q ${p1.x} ${p1.y} ${telem.x} ${telem.y}" fill="none" stroke="var(--accent-cyan)" stroke-width="${isTarget ? 2.2 : 1.6}" opacity="0.85"></path>
+      <!-- Remaining route (dashed amber/cyan) -->
+      <path class="route-path ${isTarget ? 'highlighted' : ''}" d="M ${telem.x} ${telem.y} Q ${p1.x} ${p1.y} ${h.x} ${h.y}" stroke="${isTarget ? 'var(--accent-amber)' : 'rgba(56, 189, 248, 0.6)'}"></path>
     </g>`;
   }).join('');
 
@@ -243,50 +248,58 @@ function renderMapSvg() {
 
     const shape = r.type === 'ground'
       ? `<g transform="rotate(${heading})">
-          <rect x="-6" y="-7" width="12" height="14" rx="2.5"></rect>
-          <line x1="0" y1="-7" x2="0" y2="-12" stroke="var(--accent-amber)" stroke-width="1.5" stroke-linecap="round"/>
+          <rect x="-6" y="-7" width="12" height="14" rx="2.5" fill="${roverFill}" stroke="${roverStroke}" stroke-width="1.4"></rect>
+          <line x1="0" y1="-7" x2="0" y2="-12" stroke="#f59e0b" stroke-width="1.8" stroke-linecap="round"/>
          </g>`
       : `<g transform="rotate(${heading})">
-          <polygon points="0,-9 6,6 0,2 -6,6"></polygon>
-          <line x1="0" y1="-9" x2="0" y2="-14" stroke="var(--accent-teal)" stroke-width="1.5" stroke-linecap="round"/>
+          <polygon points="0,-9 6,6 0,2 -6,6" fill="${roverFill}" stroke="${roverStroke}" stroke-width="1.4"></polygon>
+          <line x1="0" y1="-9" x2="0" y2="-14" stroke="#0ea5e9" stroke-width="1.8" stroke-linecap="round"/>
          </g>`;
 
     return `
-    <g class="marker rover-marker-${r.type} ${isSelected ? 'selected' : ''} ${isDeployed ? 'deployed' : ''}" style="${isDimmed ? 'opacity:0.25;' : ''}" data-action="select-rover" data-id="${r.id}" transform="translate(${posX},${posY})">
+    <g class="marker rover-marker-${r.type} ${isSelected ? 'selected' : ''} ${isDeployed ? 'deployed' : ''}" style="${isDimmed ? 'opacity:0.2;' : ''}" data-action="select-rover" data-id="${r.id}" transform="translate(${posX},${posY})">
       ${shape}
       <text class="marker-label" x="12" y="3.5">${r.name}</text>
-      ${isDeployed ? `<text class="marker-label" x="12" y="12" font-size="7.5px" fill="var(--accent-teal)">${telem.speed.toFixed(0)} km/h</text>` : ''}
+      ${isDeployed ? `<text class="marker-label" x="12" y="13" font-size="8px" fill="var(--accent-cyan)">${telem.speed.toFixed(0)} km/h</text>` : ''}
     </g>`;
   }).join('');
 
   const vb = currentViewBox;
 
+  const mapBgStart = isLight ? '#f8fafc' : '#0e121a';
+  const mapBgEnd = isLight ? '#edf2f7' : '#07090d';
+  const coastFill = isLight ? '#e2e8f0' : '#0a0d13';
+  const terrainStroke = isLight ? '#cbd5e1' : '#151b27';
+  const depotFill = isLight ? '#ffffff' : '#141a26';
+  const depotStroke = isLight ? '#94a3b8' : 'var(--border-card)';
+  const depotTextColor = isLight ? '#64748b' : 'var(--text-3)';
+
   return `
   <svg class="map-svg" viewBox="${vb.x} ${vb.y} ${vb.w} ${vb.h}" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Operations map">
     <defs>
       <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="#12161a"/>
-        <stop offset="100%" stop-color="#0c0f12"/>
+        <stop offset="0%" stop-color="${mapBgStart}"/>
+        <stop offset="100%" stop-color="${mapBgEnd}"/>
       </linearGradient>
     </defs>
     <rect x="0" y="0" width="1000" height="640" fill="url(#bgGrad)"></rect>
     <!-- coastline -->
-    <path class="coast-fill" d="M0,0 L1000,0 L1000,470 C900,440 860,500 800,470 C740,440 700,480 640,460 C560,430 520,470 460,440 C380,400 340,430 260,400 C160,360 100,400 0,370 Z"></path>
+    <path class="coast-fill" fill="${coastFill}" d="M0,0 L1000,0 L1000,470 C900,440 860,500 800,470 C740,440 700,480 640,460 C560,430 520,470 460,440 C380,400 340,430 260,400 C160,360 100,400 0,370 Z"></path>
     <!-- contour lines -->
-    <path class="terrain-line" d="M60,80 C220,40 380,120 520,70 C660,20 800,90 960,60"></path>
-    <path class="terrain-line" d="M40,150 C200,110 360,190 520,140 C680,90 820,160 980,130"></path>
-    <path class="terrain-line" d="M20,220 C200,180 380,260 560,210 C720,170 860,230 990,200"></path>
-    <path class="terrain-line" d="M10,290 C220,250 400,330 600,280 C760,240 880,300 990,270"></path>
-    <path class="terrain-line" d="M470,60 C480,140 440,220 470,300 C500,380 460,440 480,520"></path>
-    <path class="terrain-line" d="M600,40 C610,140 570,240 600,320"></path>
-    <path class="terrain-line" d="M0,480 C120,460 200,510 320,490 C440,470 520,510 640,495 C760,480 880,510 1000,490" opacity="0.6"></path>
-    <path class="terrain-line" d="M0,540 C140,520 260,560 400,545 C540,530 660,560 800,548 C880,542 940,555 1000,548" opacity="0.5"></path>
+    <path class="terrain-line" stroke="${terrainStroke}" d="M60,80 C220,40 380,120 520,70 C660,20 800,90 960,60"></path>
+    <path class="terrain-line" stroke="${terrainStroke}" d="M40,150 C200,110 360,190 520,140 C680,90 820,160 980,130"></path>
+    <path class="terrain-line" stroke="${terrainStroke}" d="M20,220 C200,180 380,260 560,210 C720,170 860,230 990,200"></path>
+    <path class="terrain-line" stroke="${terrainStroke}" d="M10,290 C220,250 400,330 600,280 C760,240 880,300 990,270"></path>
+    <path class="terrain-line" stroke="${terrainStroke}" d="M470,60 C480,140 440,220 470,300 C500,380 460,440 480,520"></path>
+    <path class="terrain-line" stroke="${terrainStroke}" d="M600,40 C610,140 570,240 600,320"></path>
+    <path class="terrain-line" stroke="${terrainStroke}" d="M0,480 C120,460 200,510 320,490 C440,470 520,510 640,495 C760,480 880,510 1000,490" opacity="0.6"></path>
+    <path class="terrain-line" stroke="${terrainStroke}" d="M0,540 C140,520 260,560 400,545 C540,530 660,560 800,548 C880,542 940,555 1000,548" opacity="0.5"></path>
     <!-- depot markers -->
-    <g opacity="0.65">
-      <rect x="80" y="580" width="16" height="16" rx="2" fill="none" stroke="var(--text-low)" stroke-width="1.2"></rect>
-      <text x="100" y="591" class="marker-label" fill="var(--text-low)">WEST DEPOT (HQ)</text>
-      <rect x="200" y="545" width="16" height="16" rx="2" fill="none" stroke="var(--text-low)" stroke-width="1.2"></rect>
-      <text x="220" y="556" class="marker-label" fill="var(--text-low)">EAST DEPOT</text>
+    <g opacity="0.75">
+      <rect x="80" y="580" width="16" height="16" rx="4" fill="${depotFill}" stroke="${depotStroke}" stroke-width="1.2"></rect>
+      <text x="102" y="591" class="marker-label" fill="${depotTextColor}">WEST DEPOT (HQ)</text>
+      <rect x="200" y="545" width="16" height="16" rx="4" fill="${depotFill}" stroke="${depotStroke}" stroke-width="1.2"></rect>
+      <text x="222" y="556" class="marker-label" fill="${depotTextColor}">EAST DEPOT</text>
     </g>
     ${routes}
     ${hazardMarkers}

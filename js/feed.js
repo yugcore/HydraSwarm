@@ -64,14 +64,14 @@ function startFeedAnim() {
     t += 1;
     const w = canvas.width, hh = canvas.height;
     const g = ctx.createLinearGradient(0, 0, 0, hh);
-    g.addColorStop(0, '#1a2420');
-    g.addColorStop(0.55, '#10231f');
-    g.addColorStop(1, '#0a1512');
+    g.addColorStop(0, '#131b26');
+    g.addColorStop(0.55, '#0a0f17');
+    g.addColorStop(1, '#040609');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, hh);
 
     // simulated terrain silhouette
-    ctx.fillStyle = 'rgba(10,20,17,0.9)';
+    ctx.fillStyle = 'rgba(7, 10, 15, 0.95)';
     ctx.beginPath();
     ctx.moveTo(0, hh * 0.62);
     for (let x = 0; x <= w; x += w / 12) {
@@ -84,15 +84,15 @@ function startFeedAnim() {
     ctx.fill();
 
     // scanline noise
-    ctx.globalAlpha = 0.05;
-    for (let i = 0; i < 40; i++) {
-      ctx.fillStyle = Math.random() > 0.5 ? '#8fe0d0' : '#000';
+    ctx.globalAlpha = 0.04;
+    for (let i = 0; i < 35; i++) {
+      ctx.fillStyle = Math.random() > 0.5 ? '#38bdf8' : '#000';
       ctx.fillRect(Math.random() * w, Math.random() * hh, Math.random() * 2, 1);
     }
     ctx.globalAlpha = 1;
 
     // faint moving grid line (simulated stabilization drift)
-    ctx.strokeStyle = 'rgba(216,240,236,0.06)';
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.06)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(0, hh * 0.5 + Math.sin(t * 0.008) * 6);

@@ -3,6 +3,7 @@
 ========================================================= */
 
 const state = {
+  theme: (typeof localStorage !== 'undefined' && localStorage.getItem('hydra_theme')) || 'dark', // 'dark' | 'light'
   mode: 'simulation', // 'simulation' | 'live'
   activeTargetId: 'ALL', // 'ALL' | hazardId
   selectedHazardId: null,
@@ -13,6 +14,17 @@ const state = {
   lastUpdate: new Date(),
   isSyncing: false,
 };
+
+function toggleTheme() {
+  state.theme = state.theme === 'light' ? 'dark' : 'light';
+  if (typeof document !== 'undefined') {
+    document.documentElement.setAttribute('data-theme', state.theme);
+  }
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('hydra_theme', state.theme);
+  }
+  render();
+}
 
 /* =========================================================
    ROOT RENDER
@@ -126,6 +138,9 @@ document.addEventListener('click', (e) => {
       }
       render();
       break;
+    case 'toggle-theme':
+      toggleTheme();
+      break;
     case 'set-map-view': {
       const target = t.dataset.target || 'ALL';
       state.activeTargetId = target;
@@ -202,7 +217,7 @@ setInterval(() => {
 
 // Live map & telemetry refresh tick (keeps rover positions & ETAs moving smoothly)
 setInterval(() => {
-  if (state.mode === 'simulation' || state.mode === 'live') {
+  if ((state.mode === 'simulation' || state.mode === 'live') && typeof rovers !== 'undefined') {
     const hasMovingRovers = rovers.some(r => r.status === 'Deployed' || r.status === 'On Site');
     if (hasMovingRovers) {
       const mapWrap = document.querySelector('.map-wrap');
@@ -262,12 +277,15 @@ setInterval(() => {
 /* =========================================================
    INITIALIZATION
 ========================================================= */
-document.addEventListener('DOMContentLoaded', () => {
+function init() {
+  if (typeof document !== 'undefined') {
+    document.documentElement.setAttribute('data-theme', state.theme);
+  }
   render();
   syncLiveHazards();
-});
+}
 
+document.addEventListener('DOMContentLoaded', init);
 if (document.readyState !== 'loading') {
-  render();
-  syncLiveHazards();
+  init();
 }
