@@ -4,6 +4,7 @@
 
 const state = {
   mode: 'simulation', // 'simulation' | 'live'
+  activeTargetId: 'ALL', // 'ALL' | hazardId
   selectedHazardId: null,
   selectedRoverId: null,
   liveFeedRoverId: null,
@@ -77,19 +78,20 @@ async function confirmDeploy() {
 
   const roverIds = Array.from(state.deployChecked);
 
-  state.deployChecked.forEach(id => {
-    const r = byId(rovers, id);
-    if (!r) return;
-    r.status = 'Deployed';
-    r.hazardId = hazardId;
-    r.task = `En route — ${h.name.split(',')[0]}`;
-    r.connection = r.connection === 'none' ? 'moderate' : r.connection;
+  roverIds.forEach(id => {
+    HYDRA_TELEMETRY.startMission(id, hazardId);
   });
+
   h.status = 'Active';
   state.deployModalHazardId = null;
   state.deployChecked = new Set();
   state.lastUpdate = new Date();
   
+  // Focus and zoom the map onto this new target deployment
+  state.activeTargetId = hazardId;
+  const targetEnvelope = getTargetEnvelope(hazardId);
+  animateViewBoxTo(targetEnvelope);
+
   // Dispatch via API if backend is available
   await HYDRA_API.dispatchRoverMission(roverIds, hazardId);
 
@@ -124,6 +126,14 @@ document.addEventListener('click', (e) => {
       }
       render();
       break;
+    case 'set-map-view': {
+      const target = t.dataset.target || 'ALL';
+      state.activeTargetId = target;
+      const envelope = getTargetEnvelope(target);
+      animateViewBoxTo(envelope);
+      render();
+      break;
+    }
     case 'sync-hazards':
       syncLiveHazards();
       break;
@@ -181,7 +191,7 @@ document.addEventListener('click', (e) => {
 });
 
 /* =========================================================
-   CLOCK / LAST-UPDATE TICK
+   CLOCK & LIVE TELEMETRY TICK
 ========================================================= */
 setInterval(() => {
   const clock = document.getElementById('clockVal');
@@ -190,21 +200,59 @@ setInterval(() => {
   if (feedTs) feedTs.textContent = fmtTime(new Date());
 }, 1000);
 
+// Live map & telemetry refresh tick (keeps rover positions & ETAs moving smoothly)
+setInterval(() => {
+  if (state.mode === 'simulation' || state.mode === 'live') {
+    const hasMovingRovers = rovers.some(r => r.status === 'Deployed' || r.status === 'On Site');
+    if (hasMovingRovers) {
+      const mapWrap = document.querySelector('.map-wrap');
+      if (mapWrap) {
+        // Smoothly update SVG inner contents without destroying SVG root
+        const svgEl = document.querySelector('.map-svg');
+        if (svgEl) {
+          const newSvgHtml = renderMapSvg();
+          const parsed = new DOMParser().parseFromString(newSvgHtml, 'image/svg+xml').documentElement;
+          if (parsed && parsed.innerHTML) {
+            svgEl.innerHTML = parsed.innerHTML;
+          }
+        }
+
+        // Smoothly update Target HUD without destroying card wrapper
+        const hudEl = document.querySelector('.target-hud-overlay');
+        const newHudHtml = renderTargetHudOverlay();
+        if (hudEl) {
+          if (newHudHtml) {
+            const parsedHud = new DOMParser().parseFromString(newHudHtml, 'text/html').body.firstElementChild;
+            if (parsedHud) hudEl.innerHTML = parsedHud.innerHTML;
+          } else {
+            hudEl.remove();
+          }
+        } else if (newHudHtml) {
+          const mapToolbar = document.querySelector('.map-toolbar');
+          if (mapToolbar) {
+            mapToolbar.insertAdjacentHTML('afterend', newHudHtml);
+          }
+        }
+      }
+    }
+  }
+}, 350);
+
+// Battery & periodic state drift tick
 setInterval(() => {
   if (state.mode === 'simulation' || state.mode === 'live') {
     state.lastUpdate = new Date();
     const lu = document.getElementById('lastUpdateVal');
     if (lu) lu.textContent = fmtTime(state.lastUpdate);
-    // subtle battery drift for deployed units
     rovers.forEach(r => {
       if (r.status === 'Deployed' && r.battery > 5) {
-        r.battery -= (Math.random() < 0.3 ? 1 : 0);
+        r.battery -= (Math.random() < 0.25 ? 1 : 0);
       }
     });
   }
 }, 8000);
 
-// Auto-sync live APIs every 30 seconds
+// Auto-sync live hazard APIs every 30 seconds
 setInterval(() => {
   if (state.mode === 'live') {
     syncLiveHazards();
@@ -216,7 +264,6 @@ setInterval(() => {
 ========================================================= */
 document.addEventListener('DOMContentLoaded', () => {
   render();
-  // Fetch initial live feeds in the background
   syncLiveHazards();
 });
 

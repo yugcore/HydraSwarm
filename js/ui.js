@@ -49,8 +49,11 @@ function renderStatusbar() {
 function renderRoverPanel() {
   const rows = rovers.map(r => {
     const selected = state.selectedRoverId === r.id;
-    const deployed = r.status === 'Deployed';
+    const isDeployed = r.status === 'Deployed' || r.status === 'On Site';
     const feedOn = state.liveFeedRoverId === r.id;
+    const telem = HYDRA_TELEMETRY.getRoverTelemetry(r.id);
+    const etaText = isDeployed ? HYDRA_TELEMETRY.formatEta(telem.etaSeconds) : '—';
+
     return `
     <div class="rover-card ${selected ? 'selected' : ''}" data-action="select-rover" data-id="${r.id}">
       <div class="rover-top">
@@ -66,9 +69,11 @@ function renderRoverPanel() {
           <span class="batt-track"><span class="batt-fill ${battClass(r.battery)}" style="width:${r.battery}%"></span></span>
           ${r.battery}%
         </div>
+        ${isDeployed ? `<div class="rover-stat" style="color:var(--accent-teal);"><b>${telem.speed.toFixed(0)}</b> km/h</div>` : ''}
+        ${isDeployed ? `<div class="rover-stat" style="color:var(--accent-amber);">ETA <b>${etaText}</b></div>` : ''}
         <div class="rover-stat">${connPips(r.connection)}</div>
       </div>
-      ${deployed ? `<div class="rover-actions">
+      ${isDeployed ? `<div class="rover-actions">
         <button class="mini-btn ${feedOn ? 'feed-on' : ''}" data-action="toggle-feed" data-id="${r.id}">${feedOn ? 'Feed Active' : 'Show Live Feed'}</button>
       </div>` : ``}
     </div>`;
@@ -126,10 +131,14 @@ function renderHazardPanel() {
           ${h.magnitude ? `<div class="detail-field"><label>Magnitude</label><span>${h.magnitude}</span></div>` : ''}
           ${h.lat ? `<div class="detail-field"><label>Coordinates</label><span>${h.lat.toFixed(2)}°, ${h.lon.toFixed(2)}°</span></div>` : ''}
         </div>
-        ${assigned.length ? `<div class="assigned-note">
+        ${assigned.length ? `
+          <div class="assigned-note">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 12l5 5L20 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
             ${assigned.length} rover${assigned.length > 1 ? 's' : ''} assigned: ${assigned.map(a => a.name).join(', ')}
-          </div>` : ``}
+          </div>
+          <button class="mini-btn" style="width:100%;margin-top:7px;background:var(--accent-amber-dim);color:#ffe1b3;border-color:var(--accent-amber);" data-action="set-map-view" data-target="${h.id}">
+            Focus Target View
+          </button>` : ``}
         <button class="deploy-btn" style="margin-top:10px;" data-action="open-deploy" data-id="${h.id}" ${availableCount === 0 ? 'disabled' : ''}>
           ${availableCount === 0 ? 'No Rovers Available' : 'Deploy Scout Rovers'}
         </button>

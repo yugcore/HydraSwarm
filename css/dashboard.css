@@ -728,23 +728,217 @@ input {
   position: absolute;
   top: 12px;
   left: 12px;
+  right: 12px;
   z-index: 5;
   display: flex;
-  gap: 6px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.map-toolbar > * {
+  pointer-events: auto;
 }
 
 .map-chip {
-  background: rgba(21, 24, 28, .9);
+  background: rgba(21, 24, 28, .92);
   border: 1px solid var(--border);
-  backdrop-filter: blur(2px);
-  padding: 5px 10px;
-  border-radius: 14px;
-  font-size: 10.5px;
+  backdrop-filter: blur(4px);
+  padding: 5px 12px;
+  border-radius: 16px;
+  font-size: 11px;
   color: var(--text-mid);
   display: flex;
   align-items: center;
+  gap: 7px;
+  font-weight: 600;
+}
+
+/* ---------- MAP VIEW SELECTOR (ALL / TARGET 1 / TARGET 2) ---------- */
+.map-view-selector {
+  display: flex;
+  align-items: center;
+  background: rgba(17, 21, 25, 0.94);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(6px);
+  border-radius: 20px;
+  padding: 2px;
+  gap: 2px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+}
+
+.map-view-btn {
+  display: flex;
+  align-items: center;
   gap: 6px;
-  font-weight: 500;
+  padding: 5px 12px;
+  border-radius: 16px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-mid);
+  letter-spacing: 0.3px;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+  border: 1px solid transparent;
+}
+
+.map-view-btn:hover {
+  color: var(--text-hi);
+  background: var(--bg-3);
+}
+
+.map-view-btn.active {
+  background: var(--accent-blue-dim);
+  color: #c4dcff;
+  border-color: rgba(84, 132, 196, 0.45);
+  box-shadow: 0 0 10px rgba(84, 132, 196, 0.25);
+}
+
+.map-view-btn.active.target-btn {
+  background: var(--accent-amber-dim);
+  color: #ffe1b3;
+  border-color: rgba(201, 146, 72, 0.45);
+  box-shadow: 0 0 10px rgba(201, 146, 72, 0.25);
+}
+
+.map-view-btn .target-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-low);
+  flex: none;
+}
+
+.map-view-btn.active .target-dot {
+  background: var(--accent-blue);
+  box-shadow: 0 0 0 2px rgba(84, 132, 196, 0.4);
+}
+
+.map-view-btn.active.target-btn .target-dot {
+  background: var(--accent-amber);
+  box-shadow: 0 0 0 2px rgba(201, 146, 72, 0.4);
+}
+
+.map-view-btn .rover-cnt {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  padding: 1px 5px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ---------- TARGET TELEMETRY HUD OVERLAY ---------- */
+.target-hud-overlay {
+  position: absolute;
+  top: 50px;
+  left: 12px;
+  z-index: 5;
+  background: rgba(18, 22, 27, 0.96);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+  border-radius: var(--radius-m);
+  padding: 10px 14px;
+  min-width: 260px;
+  max-width: 320px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.target-hud-header {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border-bottom: 1px solid var(--border-soft);
+  padding-bottom: 6px;
+}
+
+.target-hud-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: #f7d5a5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.target-hud-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9.5px;
+}
+
+.target-hud-badge {
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.target-hud-badge.severe {
+  background: var(--accent-red-dim);
+  color: #f0a8a0;
+}
+
+.target-hud-badge.moderate {
+  background: var(--accent-amber-dim);
+  color: #f5d49f;
+}
+
+.target-hud-badge.low {
+  background: var(--accent-teal-dim);
+  color: #bfe8e0;
+}
+
+.target-hud-source {
+  color: var(--text-low);
+  font-family: var(--mono);
+  font-size: 9px;
+  margin-left: auto;
+}
+
+.target-hud-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 12px;
+}
+
+.target-hud-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.target-hud-label {
+  font-size: 9px;
+  color: var(--text-low);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.target-hud-val {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-hi);
+}
+
+.target-hud-progress {
+  width: 100%;
+  height: 4px;
+  background: var(--bg-3);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.target-hud-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-teal), var(--accent-amber));
+  transition: width 0.2s ease;
 }
 
 .map-legend {

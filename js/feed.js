@@ -20,10 +20,13 @@ function renderLiveFeed() {
     </div>`;
   }
   const h = r.hazardId ? byId(hazards, r.hazardId) : null;
+  const telem = HYDRA_TELEMETRY.getRoverTelemetry(r.id);
+  const etaText = HYDRA_TELEMETRY.formatEta(telem.etaSeconds);
+
   return `
   <div class="livefeed">
     <div class="lf-header">
-      <span class="lf-title"><span class="rec-dot"></span>Live Feed &mdash; ${r.name}</span>
+      <span class="lf-title"><span class="rec-dot"></span>Live Feed &mdash; ${r.name} (${r.id})</span>
       <button class="lf-close" data-action="close-feed">Close</button>
     </div>
     <div class="lf-body">
@@ -31,12 +34,12 @@ function renderLiveFeed() {
       <div class="lf-crosshair"></div>
       <div class="lf-overlay">
         <div class="lf-ov-row">
-          <span class="lf-tag">${r.id} · ${r.name}</span>
+          <span class="lf-tag">${r.id} &middot; ${r.name} &middot; SPD ${telem.speed.toFixed(1)} km/h</span>
           <span class="lf-tag" id="feedTimestamp">${fmtTime(new Date())}</span>
         </div>
         <div class="lf-ov-row" style="align-items:flex-end;">
-          <span class="lf-tag">LAT ${(34.21 + r.y * 0.0007).toFixed(4)} · LON ${(-118.5 + r.x * 0.0006).toFixed(4)}</span>
-          <span class="lf-tag">HDG ${Math.floor((r.x + r.y) % 360)}° · ${h ? ('TGT ' + h.name.split(',')[0]).toUpperCase() : 'PATROL'} · LINK ${r.connection.toUpperCase()}</span>
+          <span class="lf-tag">LAT ${telem.lat.toFixed(4)} &middot; LON ${telem.lon.toFixed(4)}</span>
+          <span class="lf-tag">HDG ${telem.heading}° &middot; ${h ? ('TGT ' + h.name.split(',')[0]).toUpperCase() : 'PATROL'} &middot; ETA ${etaText}</span>
         </div>
       </div>
     </div>
