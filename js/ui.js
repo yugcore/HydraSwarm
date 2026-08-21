@@ -2,7 +2,7 @@
    HYDRA - UI COMPONENTS (CLEAN BENTO DESIGN)
 ========================================================= */
 
-/* ---------- TOP BAR ---------- */
+/* ---------- CONSOLIDATED COMMAND HEADER (48px) ---------- */
 function renderTopbar() {
   const simActive = state.mode === 'simulation';
   const isLight = state.theme === 'light';
@@ -10,82 +10,100 @@ function renderTopbar() {
     ? getStationById(state.selectedStationId || currentStationId || 'guwahati')
     : HYDRA_STATIONS[0];
 
+  const fleetRovers = !simActive ? rovers.filter(r => r.isEsp32) : rovers;
+  const readyScouts = fleetRovers.filter(r => r.status === 'Ready').length;
+  const activeHazards = hazards.filter(h => h.status === 'Active').length;
+  const loadedHeavy = (typeof heavyRovers !== 'undefined') ? heavyRovers.filter(r => r.payloadStatus === 'loaded').length : 0;
+
   const themeIcon = isLight
-    ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`
-    : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+    ? `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`
+    : `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
 
   return `
-  <div class="topbar">
-    <div class="brand">
-      <div class="brand-mark">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/><circle cx="12" cy="12" r="3.5"/></svg>
+  <header class="topbar">
+    <!-- Left: Brand + Station Pill -->
+    <div class="topbar-left">
+      <div class="brand">
+        <div class="brand-mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/><circle cx="12" cy="12" r="3.5"/></svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-name">HYDRA</span>
+          <span class="brand-sub">OPS</span>
+        </div>
       </div>
-      <div class="brand-text">
-        <span class="brand-name">HYDRA</span>
-        <span class="brand-sub">Mission Operations</span>
-      </div>
-    </div>
 
-    <!-- Center Section: Station Selector & Sim/Live Switcher -->
-    <div class="topbar-center-group">
-      <button class="station-pill-btn" data-action="open-station-modal" title="Switch Command Station (Guwahati, Chennai, Kedarnath, Mumbai, Puri, Wayanad...)">
+      <div class="topbar-v-divider"></div>
+
+      <button class="station-pill-btn" data-action="open-station-modal" title="Switch Station (${HYDRA_STATIONS.length} Available)">
         <span class="pin-dot"></span>
         <span class="station-pill-text">${activeStation.shortName}</span>
         <span class="station-pill-badge ${activeStation.badgeClass}">${activeStation.riskLevel}</span>
-        <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity:0.6;"><polyline points="6 9 12 15 18 9"/></svg>
+        <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity:0.5;"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
+    </div>
 
+    <!-- Center: Operational Mode Switcher + Live Status Micro-Pills -->
+    <div class="topbar-center">
       <div class="mode-switch" role="group" aria-label="Operating mode">
         <button data-action="set-mode" data-mode="simulation" class="${simActive ? 'active' : ''}">
-          Simulation
+          <span class="dot"></span>
+          <span>Simulation</span>
         </button>
         <button data-action="set-mode" data-mode="live" class="${!simActive ? 'live-active' : ''}">
-          Live Feeds
+          <span class="dot"></span>
+          <span>Live Feeds</span>
         </button>
+      </div>
+
+      <div class="topbar-telemetry-strip">
+        <div class="topbar-chip" title="${activeHazards} active regional disaster threats">
+          <span class="chip-dot dot-amber"></span>
+          <span><b>${activeHazards}</b> Hazards</span>
+        </div>
+        <div class="topbar-chip" title="${readyScouts} scout rovers ready for deployment">
+          <span class="chip-dot dot-cyan"></span>
+          <span><b>${readyScouts}</b> Scouts</span>
+        </div>
+        <div class="topbar-chip" title="${loadedHeavy} heavy airlifters armed with supplies">
+          <span class="chip-dot dot-emerald"></span>
+          <span><b>${loadedHeavy}</b> Armed</span>
+        </div>
+        ${!simActive ? `
+          <div class="topbar-chip chip-live" title="Live USGS and NASA telemetry uplink">
+            <span class="chip-dot dot-emerald"></span>
+            <span>Uplink Live</span>
+          </div>
+        ` : ''}
       </div>
     </div>
 
-    <!-- Right Controls: Clock & Single-Click Theme Switcher -->
+    <!-- Right: Sync Button + Clock + Theme -->
     <div class="topbar-right">
-      <div class="topbar-clock">
-        <span class="tc-lbl">TIME</span>
+      <button class="topbar-sync-btn" data-action="sync-hazards" title="Sync live regional hazard feeds">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        <span class="sync-text">Sync</span>
+      </button>
+
+      <div class="topbar-clock" title="Last Sync: ${fmtTime(state.lastUpdate)}">
+        <span class="tc-dot"></span>
         <b id="clockVal">${fmtTime(new Date())}</b>
+        <span style="display:none;" id="lastUpdateVal">${fmtTime(state.lastUpdate)}</span>
       </div>
-      <button class="theme-toggle-btn" data-action="toggle-theme" title="Switch to ${isLight ? 'Dark' : 'Light'} Mode" aria-label="Toggle Theme">
+
+      <button class="theme-toggle-btn" data-action="toggle-theme" title="Switch Theme" aria-label="Toggle Theme">
         ${themeIcon}
       </button>
     </div>
-  </div>`;
+  </header>`;
 }
 
-/* ---------- STATUS BAR (CLEAN & NON-BLINKING) ---------- */
 function renderStatusbar() {
-  const isLive = state.mode === 'live';
-  const fleetRovers = isLive ? rovers.filter(r => r.isEsp32) : rovers;
-  const activeHazards = hazards.filter(h => h.status === 'Active').length;
-  const deployedRovers = fleetRovers.filter(r => r.status === 'Deployed' || r.status === 'On Site').length;
-  const connectedUnits = fleetRovers.filter(r => r.connection !== 'none').length;
-  const readyAirlifters = (typeof heavyRovers !== 'undefined') ? heavyRovers.filter(r => r.status === 'Ready' && r.payloadStatus === 'loaded').length : 0;
-  const inFlightAirlifters = (typeof heavyRovers !== 'undefined') ? heavyRovers.filter(r => r.status === 'Deployed' || r.status === 'Returning').length : 0;
-  
-  const apiConnected = HYDRA_API.status.usgs === 'connected' || HYDRA_API.status.nasa === 'connected';
-  const apiText = isLive ? (apiConnected ? 'USGS & NASA Feeds Live' : 'Live Feeds Operational') : 'Simulation Engine Active';
+  return '';
+}
 
-  return `
-  <div class="statusbar">
-    <div class="stat-group">
-      <div class="stat"><span class="stat-lbl">Data Uplink</span><b>${apiText}</b></div>
-      <div class="stat-divider"></div>
-      <div class="stat"><span class="stat-lbl">Real Hazards</span><b>${activeHazards}</b></div>
-      <div class="stat-divider"></div>
-      <div class="stat"><span class="stat-lbl">${isLive ? 'Live Units' : 'Deployed Scouts'}</span><b>${deployedRovers}</b></div>
-      <div class="stat-divider"></div>
-      <div class="stat"><span class="stat-lbl">Heavy Reinforce</span><b>${readyAirlifters} Loaded &bull; ${inFlightAirlifters} In Flight</b></div>
-      <div class="stat-divider"></div>
-      <div class="stat"><span class="stat-lbl">${isLive ? 'WiFi Hardware' : 'Fleet Link'}</span><b>${connectedUnits} / ${fleetRovers.length}</b></div>
-    </div>
-    <div class="stat"><span class="stat-lbl">Last Sync</span><b id="lastUpdateVal">${fmtTime(state.lastUpdate)}</b></div>
-  </div>`;
+function renderLiveBanner() {
+  return '';
 }
 
 /* ---------- BESPOKE ROVER BADGE HELPER ---------- */
@@ -195,39 +213,58 @@ function renderRoverPanel() {
         const telem = HYDRA_TELEMETRY.getRoverTelemetry(r.id);
         const etaText = isDeployed ? HYDRA_TELEMETRY.formatEta(telem.etaSeconds) : '—';
         const isEsp = !!r.isEsp32;
+        const isExpanded = selected || isDeployed;
 
         return `
-        <div class="rover-card ${selected ? 'selected' : ''} ${isEsp ? 'rover-card-esp32' : ''}" data-action="select-rover" data-id="${r.id}">
+        <div class="rover-card compact-card ${selected ? 'selected' : ''} ${isExpanded ? 'expanded' : ''} ${isEsp ? 'rover-card-esp32' : ''}" data-action="select-rover" data-id="${r.id}">
           <div class="rover-top">
             <div class="rover-id">
               <span class="rover-type-icon ${isEsp ? 'esp32-icon' : ''}">${typeIcon(r.type)}</span>
               <span class="rover-name" title="${r.name}">${r.name}</span>
-              ${isEsp ? `<span class="esp32-badge">ESP32</span>` : ''}
+              ${isEsp ? `<span class="esp32-badge">WiFi</span>` : ''}
             </div>
-            ${renderRoverBadge(r.status)}
-          </div>
-          <div class="rover-meta">${r.task}${isEsp ? ` &middot; ${r.ip}` : ''}</div>
-          <div class="rover-stats">
-            <div class="rover-stat">
-              <span class="stat-sub">BATT</span>
-              <span class="batt-track"><span class="batt-fill ${battClass(r.battery)}" style="width:${r.battery}%"></span></span>
-              <span>${r.battery}%</span>
+            <div class="rover-compact-right">
+              <div class="rover-batt-compact">
+                <span class="batt-track"><span class="batt-fill ${battClass(r.battery)}" style="width:${r.battery}%"></span></span>
+                <span class="batt-text">${r.battery}%</span>
+              </div>
+              ${renderRoverBadge(r.status)}
             </div>
-            ${isDeployed ? `<div class="rover-stat">${telem.speed.toFixed(0)} km/h</div>` : ''}
-            ${isDeployed ? `<div class="rover-stat">ETA ${etaText}</div>` : ''}
-            ${isEsp ? `<div class="rover-stat">${r.rssi || -52} dBm</div>` : `<div class="rover-stat">${connPips(r.connection)}</div>`}
           </div>
-          <div class="rover-actions">
-            ${isDeployed || isEsp ? `
-              <button class="mini-btn ${feedOn ? 'feed-on' : ''}" data-action="toggle-feed" data-id="${r.id}">
-                <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:3px;"><rect x="2" y="6" width="14" height="12" rx="1.6"/><path d="M16 10.5l6-3.5v10l-6-3.5"/></svg>
-                ${feedOn ? 'Feed Active' : 'Live Feed'}
-              </button>` : ``}
-            ${isEsp ? `
-              <button class="mini-btn mini-btn-danger" data-action="disconnect-esp32" data-id="${r.id}">
-                Disconnect
-              </button>` : ``}
-          </div>
+
+          ${isExpanded ? `
+          <div class="rover-expanded-body">
+            <div class="rover-meta">${r.task}${isEsp ? ` &middot; ${r.ip}` : ''}</div>
+            <div class="rover-stats">
+              <div class="rover-stat">
+                <span class="stat-sub">SPEED</span>
+                <span>${isDeployed ? `${telem.speed.toFixed(0)} km/h` : '0 km/h'}</span>
+              </div>
+              <div class="rover-stat">
+                <span class="stat-sub">${isDeployed ? 'ETA' : 'STATUS'}</span>
+                <span>${isDeployed ? etaText : 'STANDBY'}</span>
+              </div>
+              <div class="rover-stat">
+                <span class="stat-sub">${isEsp ? 'SIGNAL' : 'LINK'}</span>
+                <span>${isEsp ? `${r.rssi || -52} dBm` : connPips(r.connection)}</span>
+              </div>
+            </div>
+            <div class="rover-actions">
+              ${isDeployed || isEsp ? `
+                <button class="mini-btn ${feedOn ? 'feed-on' : ''}" data-action="toggle-feed" data-id="${r.id}">
+                  <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:3px;"><rect x="2" y="6" width="14" height="12" rx="1.6"/><path d="M16 10.5l6-3.5v10l-6-3.5"/></svg>
+                  ${feedOn ? 'Feed Active' : 'Live Feed'}
+                </button>` : ``}
+              ${isDeployed ? `
+                <button class="mini-btn" data-action="set-map-view" data-target="${r.hazardId || 'ALL'}">
+                  Focus Map
+                </button>` : ``}
+              ${isEsp ? `
+                <button class="mini-btn mini-btn-danger" data-action="disconnect-esp32" data-id="${r.id}">
+                  Disconnect
+                </button>` : ``}
+            </div>
+          </div>` : ''}
         </div>`;
       }).join('');
     }
@@ -264,7 +301,7 @@ function renderReinforcementPanelContent() {
   const filterPillsHtml = `
     <div class="reinforce-filter-row">
       <button class="rf-pill ${filter === 'all' ? 'active' : ''}" data-action="set-reinforce-filter" data-filter="all">All (${list.length})</button>
-      <button class="rf-pill ${filter === 'loaded' ? 'active' : ''}" data-action="set-reinforce-filter" data-filter="loaded">Loaded (${loadedCount})</button>
+      <button class="rf-pill ${filter === 'loaded' ? 'active' : ''}" data-action="set-reinforce-filter" data-filter="loaded">Armed (${loadedCount})</button>
       <button class="rf-pill ${filter === 'unloaded' ? 'active' : ''}" data-action="set-reinforce-filter" data-filter="unloaded">Empty (${unloadedCount})</button>
       <button class="rf-pill ${filter === 'inflight' ? 'active' : ''}" data-action="set-reinforce-filter" data-filter="inflight">In Flight (${inFlightCount})</button>
     </div>
@@ -300,6 +337,7 @@ function renderReinforcementPanelContent() {
     const telem = HYDRA_TELEMETRY.getRoverTelemetry(hr.id);
     const etaText = isDeployed ? HYDRA_TELEMETRY.formatEta(telem.etaSeconds) : '—';
     const payload = hr.payloadId ? getPayloadById(hr.payloadId) : null;
+    const isExpanded = isSelected || isDeployed;
 
     let cargoBayHtml = '';
     if (isLoaded && payload) {
@@ -345,65 +383,74 @@ function renderReinforcementPanelContent() {
     }
 
     return `
-    <div class="rover-card heavy-rover-card ${isSelected ? 'selected' : ''}" data-action="select-heavy-rover" data-id="${hr.id}">
+    <div class="rover-card heavy-rover-card compact-card ${isSelected ? 'selected' : ''} ${isExpanded ? 'expanded' : ''}" data-action="select-heavy-rover" data-id="${hr.id}">
       <div class="rover-top">
         <div class="rover-id">
           <span class="rover-type-icon heavylift-icon">${heavyAirframeIcon()}</span>
-          <span class="rover-name" title="${hr.name}">${hr.name}</span>
+          <div style="min-width:0;">
+            <span class="rover-name" title="${hr.name}">${hr.name}</span>
+            <span class="rover-payload-tag ${isLoaded ? 'armed' : 'empty'}">${isLoaded && payload ? payload.shortName : 'Empty Bay'}</span>
+          </div>
         </div>
-        ${renderHeavyRoverBadge(hr)}
-      </div>
-      <div class="rover-meta">
-        <span>${hr.airframe}</span> &bull; <span class="cap-tag">${hr.capacity}</span> &bull; <span>${hr.baseName}</span>
-      </div>
-
-      <!-- Cargo Bay Visualizer -->
-      ${cargoBayHtml}
-
-      <!-- Flight Telemetry & Stats -->
-      <div class="rover-stats">
-        <div class="rover-stat">
-          <span class="stat-sub">BATT</span>
-          <span class="batt-track"><span class="batt-fill ${battClass(hr.battery)}" style="width:${hr.battery}%"></span></span>
-          <span>${hr.battery}%</span>
-        </div>
-        <div class="rover-stat">
-          <span class="stat-sub">SPEED</span>
-          <span>${isDeployed ? `${telem.speed.toFixed(0)} km/h` : `${hr.speedKmH || 78} km/h`}</span>
-        </div>
-        <div class="rover-stat">
-          <span class="stat-sub">${isDeployed ? 'ETA' : 'ALT'}</span>
-          <span>${isDeployed ? etaText : '120m'}</span>
+        <div class="rover-compact-right">
+          <div class="rover-batt-compact">
+            <span class="batt-track"><span class="batt-fill ${battClass(hr.battery)}" style="width:${hr.battery}%"></span></span>
+            <span class="batt-text">${hr.battery}%</span>
+          </div>
+          ${renderHeavyRoverBadge(hr)}
         </div>
       </div>
 
-      <!-- Mission Dispatch Action Buttons -->
-      <div class="rover-actions" style="margin-top:8px;">
-        ${!isDeployed ? (isLoaded ? `
-          <button class="deploy-btn heavy-dispatch-btn" data-action="dispatch-heavy-rover" data-id="${hr.id}">
-            Dispatch Drop (Click Map)
-          </button>` : `
-          <button class="deploy-btn" style="background:var(--bg-panel);color:var(--text-1);border:1px solid var(--border-card);" data-action="quick-load-single" data-id="${hr.id}" data-payload="medikit_trauma">
-            + Arm with Medikits
-          </button>`) : `
-          <button class="mini-btn" style="width:100%;" data-action="focus-drop-target" data-id="${hr.id}">
-            Tracking Airdrop Flight &bull; ETA ${etaText}
-          </button>`}
-      </div>
+      ${isExpanded ? `
+      <div class="rover-expanded-body">
+        <div class="rover-meta">
+          <span>${hr.airframe}</span> &bull; <span class="cap-tag">${hr.capacity}</span> &bull; <span>${hr.baseName}</span>
+        </div>
+
+        <!-- Cargo Bay Visualizer -->
+        ${cargoBayHtml}
+
+        <!-- Flight Telemetry & Stats -->
+        <div class="rover-stats">
+          <div class="rover-stat">
+            <span class="stat-sub">SPEED</span>
+            <span>${isDeployed ? `${telem.speed.toFixed(0)} km/h` : `${hr.speedKmH || 78} km/h`}</span>
+          </div>
+          <div class="rover-stat">
+            <span class="stat-sub">${isDeployed ? 'ETA' : 'ALT'}</span>
+            <span>${isDeployed ? etaText : '120m AGL'}</span>
+          </div>
+          <div class="rover-stat">
+            <span class="stat-sub">CAPACITY</span>
+            <span>${hr.capacity}</span>
+          </div>
+        </div>
+
+        <!-- Mission Dispatch Action Buttons -->
+        <div class="rover-actions" style="margin-top:8px;">
+          ${!isDeployed ? (isLoaded ? `
+            <button class="deploy-btn heavy-dispatch-btn" data-action="dispatch-heavy-rover" data-id="${hr.id}">
+              Dispatch Drop (Click Map)
+            </button>` : `
+            <button class="deploy-btn" style="background:var(--bg-panel);color:var(--text-1);border:1px solid var(--border-card);" data-action="quick-load-single" data-id="${hr.id}" data-payload="medikit_trauma">
+              + Arm with Medikits
+            </button>`) : `
+            <button class="mini-btn" style="width:100%;" data-action="focus-drop-target" data-id="${hr.id}">
+              Tracking Airdrop Flight &bull; ETA ${etaText}
+            </button>`}
+        </div>
+      </div>` : ''}
     </div>`;
   }).join('') || `<p style="font-size:11.5px;color:var(--text-3);padding:10px 2px;">No heavy lifters matching filter.</p>`;
 
   const inventorySummaryHtml = `
-    <div class="reinforce-inventory-card">
-      <div class="ric-head">
-        <span class="ric-title">Depot Relief Stock</span>
-        <span class="ric-badge">Regional HQ</span>
-      </div>
-      <div class="ric-grid">
-        <div class="ric-item"><span class="ric-icon">${payloadIcon('medikit')}</span><span><b>48x</b> Medikits</span></div>
-        <div class="ric-item"><span class="ric-icon">${payloadIcon('plasma')}</span><span><b>16x</b> Plasma</span></div>
-        <div class="ric-item"><span class="ric-icon">${payloadIcon('water')}</span><span><b>96x</b> Water</span></div>
-        <div class="ric-item"><span class="ric-icon">${payloadIcon('rations')}</span><span><b>140x</b> Rations</span></div>
+    <div class="reinforce-inventory-strip">
+      <span class="ric-label">Depot Stock:</span>
+      <div class="ric-pill-row">
+        <span class="ric-chip">${payloadIcon('medikit')} 48 Medikits</span>
+        <span class="ric-chip">${payloadIcon('plasma')} 16 Plasma</span>
+        <span class="ric-chip">${payloadIcon('water')} 96 Water</span>
+        <span class="ric-chip">${payloadIcon('rations')} 140 Rations</span>
       </div>
     </div>
   `;
@@ -430,7 +477,7 @@ function renderHazardPanel() {
     const sourceTag = h.source ? `<span class="source-tag">${h.source}</span>` : '';
     
     return `
-    <div class="hazard-card ${selected ? 'selected' : ''}">
+    <div class="hazard-card compact-card ${selected ? 'selected' : ''} ${selected ? 'expanded' : ''}" data-id="${h.id}">
       <div class="hazard-head" data-action="select-hazard" data-id="${h.id}">
         <div class="hazard-top">
           <div class="hazard-id">
@@ -444,36 +491,32 @@ function renderHazardPanel() {
             <span class="hazard-status-pill ${statusPillClass(h.status)}">${h.status}</span>
           </div>
         </div>
-        <div class="hazard-loc">${h.location}</div>
-        <div class="hazard-time">DETECTED ${h.detected}</div>
+        <div class="hazard-loc-row">
+          <span class="hazard-loc">${h.location}</span>
+          ${assigned.length > 0 ? `<span class="hz-assigned-chip">${assigned.length} Deployed</span>` : ''}
+        </div>
       </div>
 
       ${selected ? `
-      <div class="hazard-detail">
+      <div class="hazard-expanded-body">
         <div class="hazard-detail-grid">
-          <div class="detail-field"><label>Type</label><span>${h.type}</span></div>
-          <div class="detail-field"><label>Severity</label><span>${h.severity.toUpperCase()}</span></div>
+          <div class="detail-field"><label>Coordinates</label><span>${h.lat ? `${h.lat.toFixed(2)}°, ${h.lon.toFixed(2)}°` : '—'}</span></div>
           <div class="detail-field"><label>Detected</label><span>${h.detected}</span></div>
-          <div class="detail-field"><label>Source</label><span>${h.source || 'Regional Alert'}</span></div>
-          ${h.depth ? `<div class="detail-field"><label>Depth</label><span>${h.depth}</span></div>` : ''}
-          ${h.magnitude ? `<div class="detail-field"><label>Magnitude</label><span>${h.magnitude}</span></div>` : ''}
-          ${h.lat ? `<div class="detail-field"><label>Coordinates</label><span>${h.lat.toFixed(2)}°, ${h.lon.toFixed(2)}°</span></div>` : ''}
+          <div class="detail-field"><label>Source Feed</label><span>${h.source || 'Regional Sensor'}</span></div>
+          <div class="detail-field"><label>Threat Level</label><span style="color:var(--accent-rose);">${h.severity.toUpperCase()}</span></div>
         </div>
 
         ${assigned.length ? `
           <div class="assigned-note">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 12l5 5L20 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            ${assigned.length} unit${assigned.length > 1 ? 's' : ''} deployed: ${assigned.map(a => a.name).join(', ')}
+            <span>${assigned.length} unit${assigned.length > 1 ? 's' : ''} en route: <b>${assigned.map(a => a.name).join(', ')}</b></span>
           </div>
-          <button class="mini-btn" style="width:100%;margin-top:6px;background:var(--bg-panel);border:1px solid var(--border-card);color:var(--text-1);" data-action="set-map-view" data-target="${h.id}">
-            Focus Target on Map
-          </button>
         ` : ''}
 
-        <!-- Inline Available Units Deployment Section -->
+        <!-- Streamlined Available Units Deployment Section -->
         <div class="hazard-deploy-section">
           <div class="hds-header">
-            <span class="hds-title">Available Units to Deploy (${availableRovers.length})</span>
+            <span class="hds-title">Available Units (${availableRovers.length})</span>
             ${availableRovers.length > 1 ? `
               <button class="hds-link-all" data-action="quick-deploy-all-to-hazard" data-id="${h.id}">
                 Deploy All (${availableRovers.length})
@@ -487,7 +530,7 @@ function renderHazardPanel() {
                   <span class="rover-type-icon">${typeIcon(r.type)}</span>
                   <div style="min-width:0;">
                     <div class="hds-r-name">${r.name}</div>
-                    <div class="hds-r-meta">${r.type === 'aerial' ? 'Aerial Drone' : (r.type === 'amphibious' ? 'Amphibious Pod' : 'Ground Scout')} &bull; BATT ${r.battery}%</div>
+                    <div class="hds-r-meta">${r.type === 'aerial' ? 'Drone' : 'Scout'} &bull; BATT ${r.battery}%</div>
                   </div>
                 </div>
                 <button class="hds-deploy-single-btn" data-action="quick-deploy-single" data-rover="${r.id}" data-hazard="${h.id}" title="Deploy ${r.name} to ${h.name}">
@@ -495,13 +538,16 @@ function renderHazardPanel() {
                 </button>
               </div>
             `).join('') : `
-              <div class="hds-empty-notice">All active units are currently deployed on missions.</div>
+              <div class="hds-empty-notice">All active scout units currently on mission.</div>
             `}
           </div>
 
           <div class="hds-footer-btns">
-            <button class="deploy-btn" data-action="open-deploy" data-id="${h.id}" ${availableRovers.length === 0 ? 'disabled' : ''}>
-              ${availableRovers.length === 0 ? 'No Units Available' : 'Multi-Unit Deployment Modal'}
+            <button class="mini-btn" style="flex:1;background:var(--bg-card);border:1px solid var(--border-card);color:var(--text-1);" data-action="set-map-view" data-target="${h.id}">
+              Focus Map View
+            </button>
+            <button class="mini-btn btn-primary" style="flex:1.2;" data-action="open-deploy" data-id="${h.id}" ${availableRovers.length === 0 ? 'disabled' : ''}>
+              Multi-Unit Modal
             </button>
           </div>
         </div>

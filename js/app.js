@@ -43,8 +43,6 @@ function render() {
   if (!app) return;
   app.innerHTML = `
     ${renderTopbar()}
-    ${renderLiveBanner()}
-    ${renderStatusbar()}
     <div class="main">
       ${renderRoverPanel()}
       <div class="col col-center">
