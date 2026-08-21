@@ -181,8 +181,8 @@ function renderRoverPanel() {
         </div>`;
     } else {
       const scoutActionBarHtml = `
-        <div class="scout-action-bar">
-          <button class="scout-connect-btn" data-action="open-esp32-modal" title="Connect physical ESP32-CAM, ESP32-S3, or custom WiFi rover hardware">
+        <div class="scout-action-bar" style="display:flex;gap:6px;align-items:center;margin-bottom:8px;">
+          <button class="scout-connect-btn" data-action="open-esp32-modal" title="Connect physical ESP32-CAM, ESP32-S3, or custom WiFi rover hardware" style="flex:1;">
             <div style="display:flex;align-items:center;gap:6px;">
               <svg class="wifi-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2">
                 <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
@@ -195,6 +195,9 @@ function renderRoverPanel() {
             ${espConnectedCount > 0 
               ? `<span class="wifi-pill-count">${espConnectedCount} Linked</span>` 
               : `<span class="wifi-sub-hint">ESP32 / IoT</span>`}
+          </button>
+          <button class="mini-btn" data-action="connect-all-esp32" title="Link all discovered ESP32 units to fleet simultaneously" style="flex:none;font-size:9.5px;font-weight:700;padding:6px 8px;white-space:nowrap;background:var(--bg-card);border:1px solid var(--border-card);color:var(--accent-cyan);">
+            Connect All (${typeof HYDRA_ESP32 !== 'undefined' ? HYDRA_ESP32.discoveredDevices.length : 4})
           </button>
         </div>`;
 

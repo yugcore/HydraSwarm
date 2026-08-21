@@ -245,10 +245,25 @@ document.addEventListener('click', (e) => {
       state.selectedHazardId = null;
       state.selectedRoverId = null;
       state.selectedHeavyRoverId = null;
-      state.liveFeedRoverId = null;
       state.deployModalHazardId = null;
       if (state.mode === 'live') {
+        if (typeof HYDRA_ESP32 !== 'undefined') {
+          const espCount = rovers.filter(r => r.isEsp32).length;
+          if (espCount === 0) {
+            HYDRA_ESP32.connectAllDiscovered();
+          }
+        }
+        const espRovers = rovers.filter(r => r.isEsp32);
+        if (espRovers.length > 0) {
+          state.liveFeedRoverId = espRovers[0].id;
+          state.feedViewMode = espRovers.length > 1 ? 'grid' : 'single';
+        }
         syncLiveHazards();
+      } else {
+        const streamable = rovers.filter(r => r.isEsp32 || r.status === 'Deployed' || r.status === 'On Site');
+        if (streamable.length > 0 && !state.liveFeedRoverId) {
+          state.liveFeedRoverId = streamable[0].id;
+        }
       }
       render();
       break;

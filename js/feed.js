@@ -9,60 +9,61 @@ function renderLiveFeed() {
   const streamableRovers = isLive 
     ? rovers.filter(rv => rv.isEsp32) 
     : rovers.filter(rv => rv.isEsp32 || rv.status === 'Deployed' || rv.status === 'On Site');
-  const isGrid = state.feedViewMode === 'grid' && streamableRovers.length > 1;
+  
+  // If in grid mode or multiple ESP32 rovers are active and no specific single rover chosen, default to grid
+  const isGrid = (state.feedViewMode === 'grid' || (!state.liveFeedRoverId && streamableRovers.length > 1)) && streamableRovers.length > 1;
   const isExpanded = !!state.feedExpanded;
 
   // Multi-camera switcher tabs
   const multiCamSwitcher = streamableRovers.length > 1 ? `
     <div class="feed-tabs-strip">
-      <button class="feed-tab-btn ${!isGrid ? 'active' : ''}" data-action="set-feed-view" data-view="single" title="Focus Single Camera View">
-        <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
-        Single Cam
-      </button>
-      <button class="feed-tab-btn ${isGrid ? 'active' : ''}" data-action="set-feed-view" data-view="grid" title="Multi-Camera Split Grid (Stream all rovers simultaneously)">
-        <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      <button class="feed-tab-btn ${isGrid ? 'active' : ''}" data-action="set-feed-view" data-view="grid" title="Multi-Camera Split Grid (Stream all WiFi rovers simultaneously)">
+        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
         Multi-Cam Split Grid (${streamableRovers.length})
+      </button>
+      <button class="feed-tab-btn ${!isGrid ? 'active' : ''}" data-action="set-feed-view" data-view="single" title="Focus Single Camera View">
+        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+        Single Cam
       </button>
       <div class="strip-divider"></div>
       ${streamableRovers.map(rv => `
         <button class="feed-tab-btn ${(!isGrid && rv.id === state.liveFeedRoverId) ? 'active' : ''}" data-action="select-active-feed" data-id="${rv.id}" title="Focus ${rv.name} camera feed">
-          <span class="rec-dot-sm ${rv.id === state.liveFeedRoverId ? 'active' : ''}"></span>
           <span class="ft-name">${rv.name}</span>
           ${rv.isEsp32 ? `<span class="ft-ip">${rv.ip}</span>` : ''}
         </button>
       `).join('')}
+      <button class="feed-tab-btn" data-action="open-esp32-modal" style="margin-left:auto;color:var(--accent-cyan);" title="Add or configure WiFi rovers">
+        + Add WiFi Unit
+      </button>
     </div>` : '';
 
   // ----------------------------------------------------
   // IDLE / NO ACTIVE FEED STATE
   // ----------------------------------------------------
-  if (!state.liveFeedRoverId && !isGrid) {
-    const quickLinks = streamableRovers.length > 0 ? streamableRovers.map(rv => `
-      <button class="btn btn-secondary btn-sm" data-action="select-active-feed" data-id="${rv.id}" style="font-size:11px;">
-        <span class="rec-dot-sm"></span> Stream ${rv.name} ${rv.isEsp32 ? `(${rv.ip})` : ''}
-      </button>
-    `).join('') : '';
-
+  if (streamableRovers.length === 0) {
     return `
     <div class="livefeed livefeed-idle">
       <div class="lf-header">
         <div class="lf-title-group">
-          <span class="lf-title"><span class="rec-dot-sm"></span> ${isLive ? 'Live Hardware Camera Stream' : 'Live Camera Stream'}</span>
+          <span class="lf-title">${isLive ? 'ESP32 WiFi Live Camera Stream' : 'Live Camera Stream'}</span>
         </div>
-        <span style="font-size:10.5px;color:var(--text-3);">${isLive ? 'Live Mode &middot; Real hardware data only' : 'Select a rover to stream video'}</span>
+        <span style="font-size:10.5px;color:var(--text-3);">${isLive ? 'Live Hardware Mode' : 'Select a rover to stream video'}</span>
       </div>
-      ${multiCamSwitcher}
       <div class="lf-body">
         <div class="lf-empty">
           <div style="display:flex;align-items:center;gap:8px;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" width="22" height="22"><rect x="2" y="6" width="14" height="12" rx="1.6"/><path d="M16 10.5l6-3.5v10l-6-3.5"/></svg>
-            <span class="es-title" style="margin:0;">${isLive ? 'No Physical ESP32 Stream Active' : 'No Active Camera Selected'}</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" width="24" height="24"><rect x="2" y="6" width="14" height="12" rx="1.6"/><path d="M16 10.5l6-3.5v10l-6-3.5"/></svg>
+            <span class="es-title" style="margin:0;">No Active ESP32 WiFi Streams</span>
           </div>
-          <div class="es-sub">${isLive ? 'In <b>Live Feeds</b> mode, all simulated data is removed. Connect your physical ESP32-CAM rovers over WiFi to stream real live camera video.' : 'Click any unit below or click "Show Live Feed" on a rover card:'}</div>
-          ${!isLive ? `
-            <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:4px;">
-              ${quickLinks || '<span style="font-size:11px;color:var(--text-3);">No rovers currently deployed or connected.</span>'}
-            </div>` : ''}
+          <div class="es-sub">Connect your physical or simulated ESP32-CAM / ESP32-S3 WiFi vehicles to view real-time multi-camera feeds.</div>
+          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;justify-content:center;">
+            <button class="btn btn-primary btn-sm" data-action="connect-all-esp32">
+              Connect All WiFi Rovers (4 Discovered)
+            </button>
+            <button class="btn btn-secondary btn-sm" data-action="open-esp32-modal">
+              + Manual IP / Subnet Scan
+            </button>
+          </div>
         </div>
       </div>
     </div>`;
@@ -77,16 +78,16 @@ function renderLiveFeed() {
       const isEsp = !!rv.isEsp32;
       const telem = HYDRA_TELEMETRY.getRoverTelemetry(rv.id);
       return `
-      <div class="grid-cam-tile" data-action="select-active-feed" data-id="${rv.id}" title="Click to maximize ${rv.name}">
+      <div class="grid-cam-tile" data-id="${rv.id}">
         <div class="grid-cam-head">
           <span class="grid-cam-title">
-            <span class="rec-dot-sm active"></span>
-            ${rv.name} ${isEsp ? `<span class="ft-ip">${rv.ip}</span>` : ''}
+            <b>${rv.name}</b> ${isEsp ? `<span class="esp-ip-pill" style="font-size:8.5px;padding:1px 5px;">${rv.ip}</span>` : ''}
           </span>
-          <span class="grid-cam-meta">
-            ${isEsp ? `<span style="color:var(--accent-emerald);font-size:9.5px;font-weight:700;">${rv.rssi || -50}dBm</span>` : ''}
-            <span style="font-size:9.5px;font-weight:800;">${rv.battery}%</span>
-          </span>
+          <div style="display:flex;align-items:center;gap:6px;">
+            ${isEsp ? `<span style="color:var(--accent-emerald);font-size:9.5px;font-weight:700;font-family:var(--mono);">${rv.rssi || -50}dBm</span>` : ''}
+            <span style="font-size:9.5px;font-weight:800;font-family:var(--mono);">${rv.battery}%</span>
+            <button class="link-btn" data-action="select-active-feed" data-id="${rv.id}" title="Maximize single view" style="color:var(--accent-cyan);font-size:10px;font-weight:700;">Focus &rarr;</button>
+          </div>
         </div>
         <div class="grid-cam-screen">
           ${isEsp ? `
@@ -96,12 +97,22 @@ function renderLiveFeed() {
           ` : ''}
           <div class="grid-synthetic-view">
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="6" width="14" height="12" rx="1.6"/><path d="M16 10.5l6-3.5v10l-6-3.5"/></svg>
-            <span>${rv.name} Live Feed</span>
+            <span>${rv.name} &bull; ${isEsp ? `${rv.ip}:${rv.port || 81}` : 'Synthetic Feed'}</span>
           </div>
           <div class="grid-cam-osd">
             <span>LAT ${telem.lat.toFixed(4)} &middot; LON ${telem.lon.toFixed(4)}</span>
-            <span>${isEsp ? 'ESP32 WiFi' : `${telem.speed.toFixed(0)} km/h`}</span>
+            <span>${isEsp ? '2.4GHz WiFi' : `${telem.speed.toFixed(0)} km/h`}</span>
           </div>
+        </div>
+        <div class="grid-cam-foot">
+          ${isEsp ? `
+            <button class="mini-btn" style="padding:2px 6px;font-size:9px;" data-action="toggle-esp32-flash" data-id="${rv.id}">Flash</button>
+            <button class="mini-btn" style="padding:2px 6px;font-size:9px;" data-action="capture-esp32-snapshot" data-id="${rv.id}">Snap</button>
+            <button class="mini-btn" style="padding:2px 6px;font-size:9px;" data-action="esp-drive" data-cmd="forward" data-id="${rv.id}">&#x25B2; Fwd</button>
+            <button class="mini-btn" style="padding:2px 6px;font-size:9px;" data-action="esp-drive" data-cmd="stop" data-id="${rv.id}">Stop</button>
+          ` : `
+            <span style="font-size:9.5px;color:var(--text-3);">Speed: ${telem.speed.toFixed(0)} km/h</span>
+          `}
         </div>
       </div>`;
     }).join('');
@@ -111,7 +122,6 @@ function renderLiveFeed() {
       <div class="lf-header">
         <div class="lf-title-group">
           <span class="lf-title">
-            <span class="rec-dot"></span>
             Multi-Camera Squad Grid &mdash; ${streamableRovers.length} Active Feeds
           </span>
         </div>
@@ -134,7 +144,12 @@ function renderLiveFeed() {
   // ----------------------------------------------------
   // SINGLE FOCUSED ROVER VIEW
   // ----------------------------------------------------
-  const r = byId(rovers, state.liveFeedRoverId) || streamableRovers[0];
+  let activeRover = byId(rovers, state.liveFeedRoverId);
+  if (!activeRover && streamableRovers.length > 0) {
+    activeRover = streamableRovers[0];
+    state.liveFeedRoverId = activeRover.id;
+  }
+  const r = activeRover;
   if (!r) return '';
 
   const h = r.hazardId ? byId(hazards, r.hazardId) : null;

@@ -56,6 +56,20 @@ const HYDRA_ESP32 = {
       chipset: 'ESP32-WROVER-E',
       status: 'Available',
       features: ['All-Terrain Tracks', 'Obstacle LiDAR', 'Night Vision IR']
+    },
+    {
+      id: 'ESP-AMPHI-01',
+      name: 'ESP32-CAM Flood Rescue Pod',
+      type: 'amphibious',
+      ip: '192.168.1.175',
+      port: 81,
+      streamPath: '/stream',
+      rssi: -52,
+      mac: '48:E7:29:BF:88:C2',
+      battery: 92,
+      chipset: 'ESP32-S3 Water-Resistant',
+      status: 'Available',
+      features: ['Waterproof Enclosure', 'Thermal Spotter', 'Buoyancy Telemetry']
     }
   ],
 
@@ -64,24 +78,30 @@ const HYDRA_ESP32 = {
 
   loadSavedDevices() {
     try {
-      const saved = localStorage.getItem(this.STORAGE_KEY);
+      const saved = (typeof localStorage !== 'undefined') ? localStorage.getItem(this.STORAGE_KEY) : null;
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           parsed.forEach(dev => {
             this.addRoverToFleet(dev, false);
           });
+          return;
         }
       }
+      // Auto-connect all discovered ESP32 WiFi rovers on first start
+      this.connectAllDiscovered();
     } catch (e) {
-      console.warn('[HYDRA ESP32] Failed to load saved devices:', e);
+      console.warn('[HYDRA ESP32] Loading fallback WiFi devices:', e);
+      this.connectAllDiscovered();
     }
   },
 
   saveFleetDevices() {
     try {
       const espRovers = rovers.filter(r => r.isEsp32);
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(espRovers));
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(espRovers));
+      }
     } catch (e) {
       console.warn('[HYDRA ESP32] Failed to persist devices:', e);
     }
