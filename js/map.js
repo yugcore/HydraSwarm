@@ -432,7 +432,7 @@ function renderMapViewSelector() {
     
     return `
     <button class="map-view-btn target-btn ${isFocused ? 'active' : ''} ${isDrop ? 'target-btn-drop' : ''}" data-action="set-map-view" data-target="${h.id}">
-      <span class="target-dot"></span>${label}
+      ${label}
       <span class="rover-cnt">${assignedCount} unit${assignedCount > 1 ? 's' : ''}</span>
     </button>`;
   }).join('');
@@ -636,7 +636,6 @@ function renderMapSvg() {
     return `
     <g class="marker hazard-marker ${isSelected ? 'selected' : ''} ${isTarget ? 'target-focused' : ''}" style="${isDimmed ? 'opacity:0.25;' : ''}" data-action="select-hazard" data-id="${h.id}" transform="translate(${h.x},${h.y})">
       ${glowFill !== 'none' ? `<circle r="42" fill="${glowFill}"/>` : ''}
-      <circle class="pulse" r="14" fill="none" stroke="var(--accent-${h.severity === 'severe' ? 'red' : h.severity === 'moderate' ? 'amber' : 'teal'})" stroke-width="1.8"/>
       <circle r="7" fill="${markerInnerFill}" stroke="var(--accent-${h.severity === 'severe' ? 'red' : h.severity === 'moderate' ? 'amber' : 'teal'})" stroke-width="2.2"/>
       <circle r="2.8" fill="var(--accent-${h.severity === 'severe' ? 'red' : h.severity === 'moderate' ? 'amber' : 'teal'})"/>
       ${(!isDimmed || isSelected) ? `
@@ -786,7 +785,6 @@ function renderMapSvg() {
     } else {
       return `
       <g class="drop-target-marker ${isTarget ? 'target-focused' : ''}" transform="translate(${dt.x},${dt.y})" data-action="set-map-view" data-target="${dt.id}">
-        <circle class="pulse" r="18" fill="none" stroke="var(--accent-amber)" stroke-width="1.8"/>
         <circle r="7" fill="none" stroke="var(--accent-amber)" stroke-width="2.2"/>
         <line x1="-15" y1="0" x2="15" y2="0" stroke="var(--accent-amber)" stroke-width="1.5"/>
         <line x1="0" y1="-15" x2="0" y2="15" stroke="var(--accent-amber)" stroke-width="1.5"/>
@@ -906,13 +904,12 @@ function renderMap() {
   return `
   <div class="map-wrap ${isDropActive ? 'drop-targeting-active' : ''}">
     <div class="map-toolbar">
-      <div class="map-chip"><span class="stat-dot ok"></span>${chipLabel}</div>
+      <div class="map-chip">${chipLabel}</div>
       ${renderMapViewSelector()}
     </div>
     ${isDropActive ? `
       <div class="map-drop-banner">
         <div class="mdb-content">
-          <span class="mdb-pulse-dot"></span>
           <span><b>TARGET DESIGNATION ACTIVE:</b> Click ANY point on the tactical map to dispatch Heavy Airlift Supply Drop</span>
         </div>
         <button class="mdb-close-btn" data-action="toggle-drop-designation" title="Exit Drop Mode">&times;</button>

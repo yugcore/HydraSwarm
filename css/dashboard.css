@@ -1496,30 +1496,16 @@ svg.map-svg {
   cursor: pointer;
 }
 
-.marker-hazard circle.pulse {
-  animation: pulse 2.4s ease-out infinite;
-}
-
-@keyframes pulse {
-  0% { r: 9; opacity: 0.55; }
-  100% { r: 24; opacity: 0; }
-}
-
 .route-path {
   fill: none;
   stroke-width: 1.8;
   stroke-dasharray: 5 4;
   opacity: 0.85;
-  animation: dash 1.4s linear infinite;
 }
 
 .route-path.highlighted {
   stroke-width: 2.4;
   opacity: 1;
-}
-
-@keyframes dash {
-  to { stroke-dashoffset: -18; }
 }
 
 .marker-label {
@@ -1535,13 +1521,8 @@ svg.map-svg {
 }
 
 .hazard-evac-zone {
-  animation: pulse-ring 3.5s ease-in-out infinite;
+  opacity: 0.55;
   transform-origin: center;
-}
-
-@keyframes pulse-ring {
-  0%, 100% { opacity: 0.75; }
-  50% { opacity: 0.35; }
 }
 
 .compass-rose text,
@@ -1682,7 +1663,6 @@ svg.map-svg {
   height: 6px;
   border-radius: 50%;
   background: var(--accent-rose);
-  animation: blink 1.6s ease-in-out infinite;
 }
 
 .rec-dot-idle {
@@ -1690,11 +1670,6 @@ svg.map-svg {
   height: 6px;
   border-radius: 50%;
   background: var(--text-3);
-}
-
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.25; }
 }
 
 .lf-close {

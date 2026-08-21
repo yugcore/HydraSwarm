@@ -36,7 +36,6 @@ function renderTopbar() {
       <div class="topbar-v-divider"></div>
 
       <button class="station-pill-btn" data-action="open-station-modal" title="Switch Station (${HYDRA_STATIONS.length} Available)">
-        <span class="pin-dot"></span>
         <span class="station-pill-text">${activeStation.shortName}</span>
         <span class="station-pill-badge ${activeStation.badgeClass}">${activeStation.riskLevel}</span>
         <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity:0.5;"><polyline points="6 9 12 15 18 9"/></svg>
@@ -47,31 +46,25 @@ function renderTopbar() {
     <div class="topbar-center">
       <div class="mode-switch" role="group" aria-label="Operating mode">
         <button data-action="set-mode" data-mode="simulation" class="${simActive ? 'active' : ''}">
-          <span class="dot"></span>
           <span>Simulation</span>
         </button>
         <button data-action="set-mode" data-mode="live" class="${!simActive ? 'live-active' : ''}">
-          <span class="dot"></span>
           <span>Live Feeds</span>
         </button>
       </div>
 
       <div class="topbar-telemetry-strip">
         <div class="topbar-chip" title="${activeHazards} active regional disaster threats">
-          <span class="chip-dot dot-amber"></span>
           <span><b>${activeHazards}</b> Hazards</span>
         </div>
         <div class="topbar-chip" title="${readyScouts} scout rovers ready for deployment">
-          <span class="chip-dot dot-cyan"></span>
           <span><b>${readyScouts}</b> Scouts</span>
         </div>
         <div class="topbar-chip" title="${loadedHeavy} heavy airlifters armed with supplies">
-          <span class="chip-dot dot-emerald"></span>
           <span><b>${loadedHeavy}</b> Armed</span>
         </div>
         ${!simActive ? `
           <div class="topbar-chip chip-live" title="Live USGS and NASA telemetry uplink">
-            <span class="chip-dot dot-emerald"></span>
             <span>Uplink Live</span>
           </div>
         ` : ''}
@@ -86,7 +79,6 @@ function renderTopbar() {
       </button>
 
       <div class="topbar-clock" title="Last Sync: ${fmtTime(state.lastUpdate)}">
-        <span class="tc-dot"></span>
         <b id="clockVal">${fmtTime(new Date())}</b>
         <span style="display:none;" id="lastUpdateVal">${fmtTime(state.lastUpdate)}</span>
       </div>
