@@ -247,22 +247,19 @@ document.addEventListener('click', (e) => {
       state.selectedHeavyRoverId = null;
       state.deployModalHazardId = null;
       if (state.mode === 'live') {
-        if (typeof HYDRA_ESP32 !== 'undefined') {
-          const espCount = rovers.filter(r => r.isEsp32).length;
-          if (espCount === 0) {
-            HYDRA_ESP32.connectAllDiscovered();
-          }
-        }
-        const espRovers = rovers.filter(r => r.isEsp32);
-        if (espRovers.length > 0) {
-          state.liveFeedRoverId = espRovers[0].id;
-          state.feedViewMode = espRovers.length > 1 ? 'grid' : 'single';
-        }
+        const realRovers = rovers.filter(r => r.isEsp32);
+        state.liveFeedRoverId = realRovers.length > 0 ? realRovers[0].id : null;
+        state.feedViewMode = realRovers.length > 1 ? 'grid' : 'single';
         syncLiveHazards();
       } else {
-        const streamable = rovers.filter(r => r.isEsp32 || r.status === 'Deployed' || r.status === 'On Site');
-        if (streamable.length > 0 && !state.liveFeedRoverId) {
-          state.liveFeedRoverId = streamable[0].id;
+        state.liveFeedRoverId = null;
+        state.feedViewMode = 'single';
+        // In simulation mode, reload active station's authentic simulated fleet and hazards
+        const activeStation = (typeof getStationById === 'function')
+          ? getStationById(state.selectedStationId || currentStationId || 'guwahati')
+          : HYDRA_STATIONS[0];
+        if (typeof switchHydraStation === 'function') {
+          switchHydraStation(activeStation.id);
         }
       }
       render();
@@ -531,6 +528,12 @@ document.addEventListener('click', (e) => {
     case 'disconnect-esp32':
       if (typeof HYDRA_ESP32 !== 'undefined') {
         HYDRA_ESP32.disconnectRover(id);
+      }
+      break;
+    case 'clear-all-esp32':
+      if (typeof HYDRA_ESP32 !== 'undefined') {
+        HYDRA_ESP32.clearAllEsp32();
+        render();
       }
       break;
     case 'toggle-esp32-flash':

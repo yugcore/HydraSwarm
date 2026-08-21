@@ -6,18 +6,17 @@ let feedRAF = null;
 
 function renderLiveFeed() {
   const isLive = state.mode === 'live';
-  const streamableRovers = isLive 
-    ? rovers.filter(rv => rv.isEsp32) 
-    : rovers.filter(rv => rv.isEsp32 || rv.status === 'Deployed' || rv.status === 'On Site');
+  // The live video feed section strictly streams REAL physical WiFi hardware (zero simulated units)
+  const streamableRovers = rovers.filter(rv => rv.isEsp32);
   
-  // If in grid mode or multiple ESP32 rovers are active and no specific single rover chosen, default to grid
+  // If in grid mode or multiple real ESP32 rovers are active and no specific single rover chosen, default to grid
   const isGrid = (state.feedViewMode === 'grid' || (!state.liveFeedRoverId && streamableRovers.length > 1)) && streamableRovers.length > 1;
   const isExpanded = !!state.feedExpanded;
 
   // Multi-camera switcher tabs
   const multiCamSwitcher = streamableRovers.length > 1 ? `
     <div class="feed-tabs-strip">
-      <button class="feed-tab-btn ${isGrid ? 'active' : ''}" data-action="set-feed-view" data-view="grid" title="Multi-Camera Split Grid (Stream all WiFi rovers simultaneously)">
+      <button class="feed-tab-btn ${isGrid ? 'active' : ''}" data-action="set-feed-view" data-view="grid" title="Multi-Camera Split Grid (Stream all real WiFi rovers simultaneously)">
         <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
         Multi-Cam Split Grid (${streamableRovers.length})
       </button>
@@ -29,11 +28,11 @@ function renderLiveFeed() {
       ${streamableRovers.map(rv => `
         <button class="feed-tab-btn ${(!isGrid && rv.id === state.liveFeedRoverId) ? 'active' : ''}" data-action="select-active-feed" data-id="${rv.id}" title="Focus ${rv.name} camera feed">
           <span class="ft-name">${rv.name}</span>
-          ${rv.isEsp32 ? `<span class="ft-ip">${rv.ip}</span>` : ''}
+          <span class="ft-ip">${rv.ip}</span>
         </button>
       `).join('')}
       <button class="feed-tab-btn" data-action="open-esp32-modal" style="margin-left:auto;color:var(--accent-cyan);" title="Add or configure WiFi rovers">
-        + Add WiFi Unit
+        + Add Real Hardware
       </button>
     </div>` : '';
 
@@ -45,20 +44,20 @@ function renderLiveFeed() {
     <div class="livefeed livefeed-idle">
       <div class="lf-header">
         <div class="lf-title-group">
-          <span class="lf-title">${isLive ? 'ESP32 WiFi Live Camera Stream' : 'Live Camera Stream'}</span>
+          <span class="lf-title">${isLive ? 'Real Hardware Camera Feed' : 'Live Camera Feed'}</span>
         </div>
-        <span style="font-size:10.5px;color:var(--text-3);">${isLive ? 'Live Hardware Mode' : 'Select a rover to stream video'}</span>
+        <span style="font-size:10.5px;color:var(--text-3);">Physical Hardware Only</span>
       </div>
       <div class="lf-body">
         <div class="lf-empty">
           <div style="display:flex;align-items:center;gap:8px;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" width="24" height="24"><rect x="2" y="6" width="14" height="12" rx="1.6"/><path d="M16 10.5l6-3.5v10l-6-3.5"/></svg>
-            <span class="es-title" style="margin:0;">No Active ESP32 WiFi Streams</span>
+            <span class="es-title" style="margin:0;">No Real WiFi Rovers Linked</span>
           </div>
-          <div class="es-sub">Connect your physical or simulated ESP32-CAM / ESP32-S3 WiFi vehicles to view real-time multi-camera feeds.</div>
+          <div class="es-sub">In accordance with live operational protocol, simulated units are excluded. Link your real ESP32-CAM / ESP32-S3 hardware over local WiFi to stream live footage.</div>
           <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;justify-content:center;">
             <button class="btn btn-primary btn-sm" data-action="connect-all-esp32">
-              Connect All WiFi Rovers (4 Discovered)
+              Connect Discovered WiFi Hardware (4)
             </button>
             <button class="btn btn-secondary btn-sm" data-action="open-esp32-modal">
               + Manual IP / Subnet Scan

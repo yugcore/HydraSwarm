@@ -13,65 +13,8 @@ const HYDRA_ESP32 = {
   testStreamUrl: '',
   telemetryInterval: null,
 
-  // Discovered / Available ESP32 WiFi network devices
-  discoveredDevices: [
-    {
-      id: 'ESP-ROVER-01',
-      name: 'ESP32-CAM Scout Alpha',
-      type: 'ground',
-      ip: '192.168.4.1',
-      port: 81,
-      streamPath: '/stream',
-      rssi: -48,
-      mac: '24:6F:28:AE:3C:80',
-      battery: 95,
-      chipset: 'ESP32-CAM (OV2640)',
-      status: 'Available',
-      features: ['MJPEG Stream', 'Flash LED', 'Dual Motor Drive', 'GPS Telemetry']
-    },
-    {
-      id: 'ESP-DRONE-01',
-      name: 'ESP32-S3 SkyScout Flyer',
-      type: 'aerial',
-      ip: '192.168.1.108',
-      port: 81,
-      streamPath: '/stream',
-      rssi: -58,
-      mac: '84:CC:A8:92:4F:1A',
-      battery: 88,
-      chipset: 'ESP32-S3 (OV5640)',
-      status: 'Available',
-      features: ['HD Aerial Feed', 'Altitude Hold', 'Auto-Return', 'Telemetry Uplink']
-    },
-    {
-      id: 'ESP-ROVER-02',
-      name: 'ESP32 Micro-Scout Beta',
-      type: 'ground',
-      ip: '192.168.1.142',
-      port: 80,
-      streamPath: '/mjpeg',
-      rssi: -64,
-      mac: '30:AE:A4:17:B9:5D',
-      battery: 76,
-      chipset: 'ESP32-WROVER-E',
-      status: 'Available',
-      features: ['All-Terrain Tracks', 'Obstacle LiDAR', 'Night Vision IR']
-    },
-    {
-      id: 'ESP-AMPHI-01',
-      name: 'ESP32-CAM Flood Rescue Pod',
-      type: 'amphibious',
-      ip: '192.168.1.175',
-      port: 81,
-      streamPath: '/stream',
-      rssi: -52,
-      mac: '48:E7:29:BF:88:C2',
-      battery: 92,
-      chipset: 'ESP32-S3 Water-Resistant',
-      status: 'Available',
-      features: ['Waterproof Enclosure', 'Thermal Spotter', 'Buoyancy Telemetry']
-    }
-  ],
+  // Discovered / Available ESP32 WiFi network devices (populated via live subnet probing or manual setup)
+  discoveredDevices: [],
 
   /* ---------- PERSISTENCE STORAGE ---------- */
   STORAGE_KEY: 'hydra_esp32_rovers',
@@ -85,15 +28,27 @@ const HYDRA_ESP32 = {
           parsed.forEach(dev => {
             this.addRoverToFleet(dev, false);
           });
-          return;
         }
       }
-      // Auto-connect all discovered ESP32 WiFi rovers on first start
-      this.connectAllDiscovered();
     } catch (e) {
-      console.warn('[HYDRA ESP32] Loading fallback WiFi devices:', e);
-      this.connectAllDiscovered();
+      console.warn('[HYDRA ESP32] Failed to load saved devices:', e);
     }
+  },
+
+  clearAllEsp32() {
+    // Remove all ESP32 units from active fleet
+    const nonEsp = rovers.filter(r => !r.isEsp32);
+    rovers.length = 0;
+    rovers.push(...nonEsp);
+    this.discoveredDevices = [];
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(this.STORAGE_KEY);
+    }
+    if (typeof state !== 'undefined') {
+      state.liveFeedRoverId = null;
+      state.feedViewMode = 'single';
+    }
+    console.log('[HYDRA ESP32] Cleared all linked WiFi hardware devices from fleet.');
   },
 
   saveFleetDevices() {

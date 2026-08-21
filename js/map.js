@@ -646,7 +646,11 @@ function renderMapSvg() {
   }).join('');
 
   const isLive = state.mode === 'live';
+  // In live mode, exclusively display real hardware units (zero simulated rovers)
   const activeFleet = isLive ? rovers.filter(r => r.isEsp32) : rovers;
+  const activeHeavyFleet = isLive 
+    ? ((typeof heavyRovers !== 'undefined') ? heavyRovers.filter(hr => hr.isEsp32) : [])
+    : ((typeof heavyRovers !== 'undefined') ? heavyRovers : []);
 
   // 9. Scout Fleet Laser Trajectory Routes
   const scoutRoutes = activeFleet.filter(r => r.hazardId).map(r => {
@@ -667,7 +671,7 @@ function renderMapSvg() {
   }).join('');
 
   // 10. Heavy Airlift Reinforcement Flight Corridors
-  const heavyRoutes = (typeof heavyRovers !== 'undefined') ? heavyRovers.filter(hr => hr.status === 'Deployed' || hr.status === 'Returning').map(hr => {
+  const heavyRoutes = activeHeavyFleet.filter(hr => hr.status === 'Deployed' || hr.status === 'Returning').map(hr => {
     const telem = HYDRA_TELEMETRY.getRoverTelemetry(hr.id);
     if (!telem || !telem.targetPos) return '';
     const isReturn = telem.returnLeg;
@@ -684,7 +688,7 @@ function renderMapSvg() {
       <!-- Remaining projection corridor -->
       <path class="route-path heavy-flight-path" d="M ${telem.x} ${telem.y} Q ${p1.x} ${p1.y} ${p2.x} ${p2.y}" stroke="${isReturn ? 'var(--accent-teal)' : 'var(--accent-cyan)'}" stroke-width="1.8"></path>
     </g>`;
-  }).join('') : '';
+  }).join('');
 
   // 11. Scout Fleet Rover Markers
   const roverMarkers = activeFleet.map(r => {
@@ -720,7 +724,7 @@ function renderMapSvg() {
   }).join('');
 
   // 12. Heavy-Lifting Air Rovers & Aerial Drones
-  const heavyRoverMarkers = (typeof heavyRovers !== 'undefined') ? heavyRovers.map(hr => {
+  const heavyRoverMarkers = activeHeavyFleet.map(hr => {
     const telem = HYDRA_TELEMETRY.getRoverTelemetry(hr.id);
     const isSelected = state.selectedHeavyRoverId === hr.id;
     const isDeployed = hr.status === 'Deployed' || hr.status === 'Returning';
@@ -762,7 +766,7 @@ function renderMapSvg() {
         <text class="marker-label" x="14" y="13" font-size="7.5px" fill="var(--accent-emerald)">[ARMED] ${payload ? payload.shortName : 'Loaded'}</text>
       ` : '')}
     </g>`;
-  }).join('') : '';
+  }).join('');
 
   // 13. Airdrop Targets & Delivered Parachute Markers
   const dropZoneMarkers = (typeof activeDropTargets !== 'undefined') ? activeDropTargets.map(dt => {

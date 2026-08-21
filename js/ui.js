@@ -13,7 +13,9 @@ function renderTopbar() {
   const fleetRovers = !simActive ? rovers.filter(r => r.isEsp32) : rovers;
   const readyScouts = fleetRovers.filter(r => r.status === 'Ready').length;
   const activeHazards = hazards.filter(h => h.status === 'Active').length;
-  const loadedHeavy = (typeof heavyRovers !== 'undefined') ? heavyRovers.filter(r => r.payloadStatus === 'loaded').length : 0;
+  const loadedHeavy = !simActive
+    ? ((typeof heavyRovers !== 'undefined') ? heavyRovers.filter(r => r.isEsp32 && r.payloadStatus === 'loaded').length : 0)
+    : ((typeof heavyRovers !== 'undefined') ? heavyRovers.filter(r => r.payloadStatus === 'loaded').length : 0);
 
   const themeIcon = isLight
     ? `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`
@@ -138,7 +140,9 @@ function renderRoverPanel() {
   const fleetRovers = isLive ? rovers.filter(r => r.isEsp32) : rovers;
   const espConnectedCount = rovers.filter(r => r.isEsp32).length;
   const currentTab = state.leftPanelTab || 'rovers';
-  const heavyCount = (typeof heavyRovers !== 'undefined') ? heavyRovers.length : 0;
+  const heavyCount = isLive 
+    ? ((typeof heavyRovers !== 'undefined') ? heavyRovers.filter(r => r.isEsp32).length : 0)
+    : ((typeof heavyRovers !== 'undefined') ? heavyRovers.length : 0);
 
   // Render 100% Width Tab Switcher
   const tabHeaderHtml = `
@@ -196,9 +200,10 @@ function renderRoverPanel() {
               ? `<span class="wifi-pill-count">${espConnectedCount} Linked</span>` 
               : `<span class="wifi-sub-hint">ESP32 / IoT</span>`}
           </button>
-          <button class="mini-btn" data-action="connect-all-esp32" title="Link all discovered ESP32 units to fleet simultaneously" style="flex:none;font-size:9.5px;font-weight:700;padding:6px 8px;white-space:nowrap;background:var(--bg-card);border:1px solid var(--border-card);color:var(--accent-cyan);">
-            Connect All (${typeof HYDRA_ESP32 !== 'undefined' ? HYDRA_ESP32.discoveredDevices.length : 4})
-          </button>
+          ${espConnectedCount > 0 ? `
+            <button class="mini-btn mini-btn-danger" data-action="clear-all-esp32" title="Disconnect and clear all WiFi rovers" style="flex:none;font-size:9.5px;font-weight:700;padding:6px 8px;white-space:nowrap;">
+              Disconnect All
+            </button>` : ''}
         </div>`;
 
       contentHtml = scoutActionBarHtml + fleetRovers.map(r => {
@@ -276,7 +281,29 @@ function renderRoverPanel() {
 
 /* ---------- REINFORCEMENT SUPPLY TAB CONTENT GENERATOR ---------- */
 function renderReinforcementPanelContent() {
-  const list = typeof heavyRovers !== 'undefined' ? heavyRovers : [];
+  const isLive = state.mode === 'live';
+  const list = isLive
+    ? ((typeof heavyRovers !== 'undefined') ? heavyRovers.filter(r => r.isEsp32) : [])
+    : ((typeof heavyRovers !== 'undefined') ? heavyRovers : []);
+
+  if (isLive && list.length === 0) {
+    return `
+      <div class="rover-empty-live">
+        <div class="wifi-empty-icon">
+          <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.8">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+        </div>
+        <div class="es-title" style="margin-top:8px;font-size:12px;font-weight:700;color:var(--text-0);">No Real Heavy Lifters Linked</div>
+        <div class="es-sub" style="margin-top:4px;text-align:center;max-width:220px;font-size:10.5px;color:var(--text-3);line-height:1.4;">
+          In <b>Live Feeds</b> mode, simulated heavy lifters are excluded. Connect physical heavy airlift telemetry hardware to arm and deploy supplies.
+        </div>
+        <button class="btn btn-primary btn-sm" data-action="open-esp32-modal" style="margin-top:12px;">
+          + Link Real Hardware
+        </button>
+      </div>`;
+  }
+
   const filter = state.reinforcementFilter || 'all';
 
   const loadedCount = list.filter(r => r.status === 'Ready' && r.payloadStatus === 'loaded').length;
@@ -334,58 +361,15 @@ function renderReinforcementPanelContent() {
     const payload = hr.payloadId ? getPayloadById(hr.payloadId) : null;
     const isExpanded = isSelected || isDeployed;
 
-    let cargoBayHtml = '';
-    if (isLoaded && payload) {
-      cargoBayHtml = `
-        <div class="cargo-bay-loaded">
-          <div class="cbl-head">
-            <span class="cbl-icon">${payloadIcon(payload.icon)}</span>
-            <div style="min-width:0;flex:1;">
-              <div class="cbl-name" title="${payload.name}">${payload.name}</div>
-              <div class="cbl-meta">${payload.weight} &middot; ${payload.category}</div>
-            </div>
-            ${!isDeployed ? `
-              <button class="cbl-unload-btn" data-action="unload-heavy-payload" data-id="${hr.id}" title="Unload cargo bay">
-                Unload
-              </button>` : ''}
-          </div>
-          <div class="cbl-desc">${payload.desc}</div>
-        </div>`;
-    } else if (!isDeployed) {
-      const optionsHtml = SUPPLY_PAYLOADS.map(p => `
-        <option value="${p.id}">${p.shortName} (${p.weight})</option>
-      `).join('');
-
-      cargoBayHtml = `
-        <div class="cargo-bay-empty">
-          <div class="cbe-title">
-            <span>Cargo Bay Empty &mdash; Select Supply Payload:</span>
-          </div>
-          <div class="cbe-controls">
-            <select class="payload-select" id="payloadSelect_${hr.id}">
-              ${optionsHtml}
-            </select>
-            <button class="mini-btn btn-primary" data-action="load-heavy-payload" data-id="${hr.id}">
-              Load
-            </button>
-          </div>
-          <div class="quick-payload-pills">
-            <button class="q-pill" data-action="quick-load-single" data-id="${hr.id}" data-payload="medikit_trauma">+ Medikits</button>
-            <button class="q-pill" data-action="quick-load-single" data-id="${hr.id}" data-payload="plasma_coldbox">+ Plasma</button>
-            <button class="q-pill" data-action="quick-load-single" data-id="${hr.id}" data-payload="water_purify">+ Water</button>
-          </div>
-        </div>`;
-    }
-
     return `
     <div class="rover-card heavy-rover-card compact-card ${isSelected ? 'selected' : ''} ${isExpanded ? 'expanded' : ''}" data-action="select-heavy-rover" data-id="${hr.id}">
       <div class="rover-top">
         <div class="rover-id">
-          <span class="rover-type-icon heavylift-icon">${heavyAirframeIcon()}</span>
-          <div style="min-width:0;">
-            <span class="rover-name" title="${hr.name}">${hr.name}</span>
-            <span class="rover-payload-tag ${isLoaded ? 'armed' : 'empty'}">${isLoaded && payload ? payload.shortName : 'Empty Bay'}</span>
-          </div>
+          <span class="rover-type-icon heavylift-icon">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          </span>
+          <span class="rover-name" title="${hr.name}">${hr.name}</span>
+          ${payload ? `<span class="rover-payload-tag armed">${payload.shortName}</span>` : `<span class="rover-payload-tag empty">Empty</span>`}
         </div>
         <div class="rover-compact-right">
           <div class="rover-batt-compact">
@@ -398,18 +382,46 @@ function renderReinforcementPanelContent() {
 
       ${isExpanded ? `
       <div class="rover-expanded-body">
-        <div class="rover-meta">
-          <span>${hr.airframe}</span> &bull; <span class="cap-tag">${hr.capacity}</span> &bull; <span>${hr.baseName}</span>
-        </div>
+        <div class="rover-meta">${hr.airframe || 'Heavy Lifter'} &middot; ${hr.baseName || 'Base Pad'}</div>
 
-        <!-- Cargo Bay Visualizer -->
-        ${cargoBayHtml}
+        <!-- Loaded Payload Visualizer Strip -->
+        ${isLoaded && payload ? `
+          <div class="cargo-bay-loaded">
+            <div class="cbl-head">
+              <span class="cbl-icon">${payloadIcon(payload.category)}</span>
+              <div style="min-width:0;flex:1;">
+                <div class="cbl-name">${payload.name}</div>
+                <div class="cbl-meta">${payload.weight} &bull; ${payload.units}</div>
+              </div>
+              ${!isDeployed ? `
+                <button class="cbl-unload-btn" data-action="unload-heavy-payload" data-id="${hr.id}" title="Unload Cargo Bay">&times; Unload</button>
+              ` : ''}
+            </div>
+            <div class="cbl-desc">${payload.description}</div>
+          </div>
+        ` : (!isDeployed ? `
+          <div class="cargo-bay-select-wrap">
+            <div class="cb-label">Arm Cargo Bay:</div>
+            <div class="cb-select-row">
+              <select class="payload-select" id="payloadSelect_${hr.id}">
+                ${SUPPLY_PAYLOADS.map(p => `
+                  <option value="${p.id}" ${p.id === 'medikit_trauma' ? 'selected' : ''}>
+                    ${p.name} (${p.weight})
+                  </option>
+                `).join('')}
+              </select>
+              <button class="btn btn-primary btn-sm" data-action="load-heavy-payload" data-id="${hr.id}">
+                Load
+              </button>
+            </div>
+          </div>
+        ` : '')}
 
-        <!-- Flight Telemetry & Stats -->
+        <!-- 3-Column Telemetry Stats -->
         <div class="rover-stats">
           <div class="rover-stat">
             <span class="stat-sub">SPEED</span>
-            <span>${isDeployed ? `${telem.speed.toFixed(0)} km/h` : `${hr.speedKmH || 78} km/h`}</span>
+            <span>${isDeployed ? `${telem.speed.toFixed(0)} km/h` : '0 km/h'}</span>
           </div>
           <div class="rover-stat">
             <span class="stat-sub">${isDeployed ? 'ETA' : 'ALT'}</span>
@@ -438,7 +450,7 @@ function renderReinforcementPanelContent() {
     </div>`;
   }).join('') || `<p style="font-size:11.5px;color:var(--text-3);padding:10px 2px;">No heavy lifters matching filter.</p>`;
 
-  const inventorySummaryHtml = `
+  const inventorySummaryHtml = !isLive ? `
     <div class="reinforce-inventory-strip">
       <span class="ric-label">Depot Stock:</span>
       <div class="ric-pill-row">
@@ -448,7 +460,7 @@ function renderReinforcementPanelContent() {
         <span class="ric-chip">${payloadIcon('rations')} 140 Rations</span>
       </div>
     </div>
-  `;
+  ` : '';
 
   return `
     ${bannerActionHtml}
@@ -460,11 +472,14 @@ function renderReinforcementPanelContent() {
 
 /* ---------- HAZARD PANEL (INCIDENT BENTO TILES) ---------- */
 function renderHazardPanel() {
+  const isLive = state.mode === 'live';
   const activeStation = (typeof getStationById === 'function')
     ? getStationById(state.selectedStationId || currentStationId || 'guwahati')
     : HYDRA_STATIONS[0];
 
-  const availableRovers = rovers.filter(r => r.status === 'Ready');
+  const availableRovers = isLive
+    ? rovers.filter(r => r.isEsp32 && r.status === 'Ready')
+    : rovers.filter(r => r.status === 'Ready');
 
   const rows = hazards.map(h => {
     const selected = state.selectedHazardId === h.id;
@@ -565,11 +580,14 @@ function renderHazardPanel() {
 
 /* ---------- DEPLOY MODAL ---------- */
 function renderDeployModal() {
+  const isLive = state.mode === 'live';
   const h = state.deployModalHazardId ? byId(hazards, state.deployModalHazardId) : null;
   if (!h) {
     return `<div class="modal-overlay" id="modalOverlay"></div>`;
   }
-  const available = rovers.filter(r => r.status === 'Ready');
+  const available = isLive
+    ? rovers.filter(r => r.isEsp32 && r.status === 'Ready')
+    : rovers.filter(r => r.status === 'Ready');
   const rows = available.map(r => {
     const checked = state.deployChecked.has(r.id);
     return `
@@ -873,7 +891,11 @@ function renderEsp32Modal() {
           <span class="esp32-badge" style="margin:0;">${linkedCount} Linked</span>
           <span>ESP32 unit${linkedCount !== 1 ? 's' : ''} active in Scout fleet</span>
         </div>
-        <div style="display:flex;gap:8px;">
+        <div style="display:flex;gap:8px;align-items:center;">
+          ${linkedCount > 0 ? `
+            <button class="mini-btn mini-btn-danger" data-action="clear-all-esp32" title="Disconnect and remove all ESP32 WiFi units from fleet">
+              Disconnect All (${linkedCount})
+            </button>` : ''}
           <button class="btn" data-action="close-esp32-modal">Done</button>
           ${activeTab === 'manual' ? `
             <button class="btn btn-primary" data-action="connect-esp32-manual">
