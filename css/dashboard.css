@@ -3799,6 +3799,92 @@ svg.map-svg {
   color: #0b0f17 !important;
 }
 
+/* =========================================================
+   HYDRA HUD INSTANT HOVER TOOLTIP
+========================================================= */
+.hydra-hud-tooltip {
+  position: fixed;
+  z-index: 999999;
+  pointer-events: none;
+  background: rgba(10, 14, 23, 0.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--accent-cyan);
+  border-radius: var(--radius-s);
+  padding: 7px 11px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.75), 0 0 16px rgba(6, 182, 212, 0.3);
+  max-width: 320px;
+  line-height: 1.4;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(3px) scale(0.98);
+  transition: opacity 0.1s ease, transform 0.1s ease, visibility 0.1s;
+}
 
+.hydra-hud-tooltip.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+}
 
+.hydra-hud-tooltip .tooltip-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 8.5px;
+  font-family: var(--mono);
+  font-weight: 700;
+  color: var(--accent-cyan);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
 
+.hydra-hud-tooltip .tooltip-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  box-shadow: 0 0 6px var(--accent-cyan);
+  display: inline-block;
+}
+
+.hydra-hud-tooltip .tooltip-body {
+  font-family: var(--font);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #ffffff;
+  word-break: break-word;
+}
+
+/* Hover highlights for truncated names */
+.hazard-name,
+.rover-name,
+.dr-name,
+.hds-r-name,
+.st-name,
+.cbl-name {
+  cursor: pointer;
+  transition: color 0.15s ease, text-decoration 0.15s ease;
+}
+
+.hazard-name:hover,
+.rover-name:hover,
+.dr-name:hover,
+.hds-r-name:hover,
+.st-name:hover,
+.cbl-name:hover {
+  color: var(--accent-cyan) !important;
+  text-decoration: underline;
+  text-decoration-color: rgba(6, 182, 212, 0.4);
+  text-underline-offset: 2px;
+}
+
+.hazard-loc {
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.hazard-loc:hover {
+  color: #ffffff !important;
+}

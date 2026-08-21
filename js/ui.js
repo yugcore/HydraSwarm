@@ -220,7 +220,7 @@ function renderRoverPanel() {
           <div class="rover-top">
             <div class="rover-id">
               <span class="rover-type-icon ${isEsp ? 'esp32-icon' : ''}">${typeIcon(r.type)}</span>
-              <span class="rover-name" title="${r.name}">${r.name}</span>
+              <span class="rover-name" title="${escapeAttr(r.name)}" data-tooltip="${escapeAttr(r.name)}">${r.name}</span>
               ${isEsp ? `<span class="esp32-badge">WiFi</span>` : ''}
             </div>
             <div class="rover-compact-right">
@@ -368,7 +368,7 @@ function renderReinforcementPanelContent() {
           <span class="rover-type-icon heavylift-icon">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
           </span>
-          <span class="rover-name" title="${hr.name}">${hr.name}</span>
+          <span class="rover-name" title="${escapeAttr(hr.name)}" data-tooltip="${escapeAttr(hr.name)}">${hr.name}</span>
           ${payload ? `<span class="rover-payload-tag armed">${payload.shortName}</span>` : `<span class="rover-payload-tag empty">Empty</span>`}
         </div>
         <div class="rover-compact-right">
@@ -390,7 +390,7 @@ function renderReinforcementPanelContent() {
             <div class="cbl-head">
               <span class="cbl-icon">${payloadIcon(payload.category)}</span>
               <div style="min-width:0;flex:1;">
-                <div class="cbl-name">${payload.name}</div>
+                <div class="cbl-name" title="${escapeAttr(payload.name)}" data-tooltip="${escapeAttr(payload.name)}">${payload.name}</div>
                 <div class="cbl-meta">${payload.weight} &bull; ${payload.units}</div>
               </div>
               ${!isDeployed ? `
@@ -488,12 +488,12 @@ function renderHazardPanel() {
     
     return `
     <div class="hazard-card compact-card ${selected ? 'selected' : ''} ${selected ? 'expanded' : ''}" data-id="${h.id}">
-      <div class="hazard-head" data-action="select-hazard" data-id="${h.id}">
+      <div class="hazard-head" data-action="select-hazard" data-id="${h.id}" title="${escapeAttr(h.name)} &bull; ${escapeAttr(h.location)}">
         <div class="hazard-top">
           <div class="hazard-id">
-            <div style="min-width:0;">
-              <div class="hazard-name">${h.name} ${sourceTag}</div>
-              <div class="hazard-type">${h.type} ${h.magnitude ? `&middot; ${h.magnitude}` : ''}</div>
+            <div style="min-width:0;flex:1;">
+              <div class="hazard-name" title="${escapeAttr(h.name)}" data-tooltip="${escapeAttr(h.name)}">${h.name} ${sourceTag}</div>
+              <div class="hazard-type" title="${escapeAttr(h.type)}">${h.type} ${h.magnitude ? `&middot; ${h.magnitude}` : ''}</div>
             </div>
           </div>
           <div class="hazard-badge-row">
@@ -502,7 +502,7 @@ function renderHazardPanel() {
           </div>
         </div>
         <div class="hazard-loc-row">
-          <span class="hazard-loc">${h.location}</span>
+          <span class="hazard-loc" title="${escapeAttr(h.location)}" data-tooltip="${escapeAttr(h.location)}">${h.location}</span>
           ${assigned.length > 0 ? `<span class="hz-assigned-chip">${assigned.length} Deployed</span>` : ''}
         </div>
       </div>
@@ -539,11 +539,11 @@ function renderHazardPanel() {
                 <div class="hds-rover-info">
                   <span class="rover-type-icon">${typeIcon(r.type)}</span>
                   <div style="min-width:0;">
-                    <div class="hds-r-name">${r.name}</div>
+                    <div class="hds-r-name" title="${escapeAttr(r.name)}" data-tooltip="${escapeAttr(r.name)}">${r.name}</div>
                     <div class="hds-r-meta">${r.type === 'aerial' ? 'Drone' : 'Scout'} &bull; BATT ${r.battery}%</div>
                   </div>
                 </div>
-                <button class="hds-deploy-single-btn" data-action="quick-deploy-single" data-rover="${r.id}" data-hazard="${h.id}" title="Deploy ${r.name} to ${h.name}">
+                <button class="hds-deploy-single-btn" data-action="quick-deploy-single" data-rover="${r.id}" data-hazard="${h.id}" title="Deploy ${escapeAttr(r.name)} to ${escapeAttr(h.name)}">
                   Deploy &rarr;
                 </button>
               </div>
@@ -594,7 +594,7 @@ function renderDeployModal() {
     <div class="deploy-row ${checked ? 'checked' : ''}" data-action="toggle-deploy-check" data-id="${r.id}">
       <span class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3"><path d="M4 12l5 5L20 6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
       <span class="rover-type-icon">${typeIcon(r.type)}</span>
-      <span class="dr-name">${r.name}</span>
+      <span class="dr-name" title="${escapeAttr(r.name)}" data-tooltip="${escapeAttr(r.name)}">${r.name}</span>
       <span class="dr-meta">${r.type === 'aerial' ? 'Aerial Drone' : (r.type === 'amphibious' ? 'Amphibious' : 'Ground Scout')} &middot; BATT ${r.battery}%</span>
     </div>`;
   }).join('') || `<p style="font-size:11.5px;color:var(--text-3);padding:10px 2px;">No rovers currently available for deployment.</p>`;
@@ -930,7 +930,7 @@ function renderStationModal() {
       <div class="st-top">
         <div class="st-num">#${idx + 1 < 10 ? '0' + (idx + 1) : idx + 1}</div>
         <div class="st-title-group">
-          <div class="st-name">${s.name}</div>
+          <div class="st-name" title="${escapeAttr(s.name)}" data-tooltip="${escapeAttr(s.name)}">${s.name}</div>
           <div class="st-sub">${s.state} &middot; <span style="color:var(--text-3);">${s.region}</span></div>
         </div>
         <div class="st-badges">
@@ -988,4 +988,118 @@ function renderStationModal() {
     </div>
   </div>`;
 }
+
+/* =========================================================
+   HYDRA HUD INSTANT HOVER TOOLTIP ENGINE
+========================================================= */
+const HYDRA_TOOLTIP = {
+  tooltipEl: null,
+  activeTarget: null,
+
+  init() {
+    if (typeof document === 'undefined') return;
+    if (!this.tooltipEl) {
+      let existing = document.getElementById('hydraHudTooltip');
+      if (!existing) {
+        this.tooltipEl = document.createElement('div');
+        this.tooltipEl.id = 'hydraHudTooltip';
+        this.tooltipEl.className = 'hydra-hud-tooltip';
+        document.body.appendChild(this.tooltipEl);
+      } else {
+        this.tooltipEl = existing;
+      }
+    }
+
+    document.addEventListener('mouseover', (e) => {
+      const target = e.target.closest('[data-tooltip], .hazard-name, .rover-name, .hazard-loc, .st-name, .dr-name, .cbl-name, .hds-r-name, .target-hud-title');
+      if (!target) return;
+      
+      const text = target.getAttribute('data-tooltip') || target.getAttribute('title') || target.textContent.trim();
+      if (!text) return;
+
+      this.show(target, text, e);
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!this.activeTarget) return;
+      this.position(e.clientX, e.clientY);
+    });
+
+    document.addEventListener('mouseout', (e) => {
+      if (!this.activeTarget) return;
+      const related = e.relatedTarget;
+      if (!related || !this.activeTarget.contains(related)) {
+        this.hide();
+      }
+    });
+
+    window.addEventListener('scroll', () => this.hide(), true);
+  },
+
+  show(target, text, e) {
+    this.activeTarget = target;
+    if (!this.tooltipEl) return;
+
+    const cleanText = text.replace(/<[^>]*>?/gm, '').trim();
+    if (!cleanText) return;
+
+    let category = '';
+    if (target.classList.contains('hazard-name')) category = 'DISASTER HAZARD';
+    else if (target.classList.contains('hazard-loc')) category = 'GEO LOCATION';
+    else if (target.classList.contains('rover-name') || target.classList.contains('dr-name') || target.classList.contains('hds-r-name')) category = 'FLEET UNIT';
+    else if (target.classList.contains('st-name')) category = 'COMMAND STATION';
+    else if (target.classList.contains('cbl-name')) category = 'CARGO PAYLOAD';
+
+    this.tooltipEl.innerHTML = `
+      ${category ? `<div class="tooltip-header"><span class="tooltip-dot"></span>${category}</div>` : ''}
+      <div class="tooltip-body">${cleanText}</div>
+    `;
+
+    this.tooltipEl.classList.add('visible');
+    const x = e ? e.clientX : target.getBoundingClientRect().left;
+    const y = e ? e.clientY : target.getBoundingClientRect().top;
+    this.position(x, y);
+  },
+
+  position(mouseX, mouseY) {
+    if (!this.tooltipEl) return;
+    const tipWidth = this.tooltipEl.offsetWidth || 220;
+    const tipHeight = this.tooltipEl.offsetHeight || 44;
+    const padding = 12;
+
+    let left = mouseX + 14;
+    let top = mouseY - tipHeight - 8;
+
+    if (left + tipWidth > window.innerWidth - padding) {
+      left = mouseX - tipWidth - 14;
+    }
+    if (left < padding) left = padding;
+
+    if (top < padding) {
+      top = mouseY + 18;
+    }
+    if (top + tipHeight > window.innerHeight - padding) {
+      top = window.innerHeight - tipHeight - padding;
+    }
+
+    this.tooltipEl.style.left = `${left}px`;
+    this.tooltipEl.style.top = `${top}px`;
+  },
+
+  hide() {
+    this.activeTarget = null;
+    if (this.tooltipEl) {
+      this.tooltipEl.classList.remove('visible');
+    }
+  }
+};
+
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => HYDRA_TOOLTIP.init());
+  } else {
+    HYDRA_TOOLTIP.init();
+  }
+}
+
 

@@ -14,6 +14,20 @@ function byId(arr, id) {
   return arr.find(x => x.id === id);
 }
 
+function escapeAttr(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function escapeHtml(str) {
+  return escapeAttr(str);
+}
+
 function battClass(b) {
   return b <= 25 ? 'low' : b <= 55 ? 'mid' : '';
 }
