@@ -641,9 +641,7 @@ function renderEsp32Modal() {
   const activeTab = HYDRA_ESP32.activeTab || 'scanner';
   const isScanning = HYDRA_ESP32.isScanning;
   const isLive = state.mode === 'live';
-  const discovered = isLive 
-    ? (HYDRA_ESP32.discoveredDevices.filter(d => d.isRealHardware || (d.status && d.status.includes('Live')) || rovers.some(r => r.ip === d.ip && r.isHardwareLive)))
-    : (HYDRA_ESP32.discoveredDevices || []);
+  const discovered = HYDRA_ESP32.discoveredDevices || [];
 
   // Helper for RSSI signal bars
   function renderRssiBars(rssi) {
@@ -664,19 +662,25 @@ function renderEsp32Modal() {
     let devRows = '';
 
     if (discovered.length === 0) {
+      const stats = HYDRA_ESP32.lastScanStats;
       devRows = `
       <div class="esp-scanner-empty" style="padding:28px 16px;text-align:center;background:var(--bg-card);border:1px dashed var(--border-card);border-radius:var(--radius-s);display:flex;flex-direction:column;align-items:center;">
-        <span class="scanner-pulse ${isScanning ? 'active' : ''}"></span>
-        <div style="font-weight:700;font-size:12px;color:var(--text-0);margin-top:10px;">${isScanning ? 'Scanning 2.4GHz Local WiFi Subnet...' : 'No Physical Hardware Discovered on LAN'}</div>
-        <div style="font-size:11px;color:var(--text-2);text-align:center;max-width:320px;margin-top:4px;line-height:1.4;">
-          ${isScanning ? 'Listening for real ESP32-CAM and ESP32-S3 boards on your local subnet...' : 'Ensure your ESP32 rover is powered on and connected to your WiFi router or its hotspot (192.168.4.1), or use Manual IP Setup.'}
+        <div style="font-weight:700;font-size:12px;color:var(--text-0);margin-top:4px;">
+          ${isScanning ? 'Scanning WiFi Subnet for All Active Devices...' : 'No Active Devices Responded on LAN'}
+        </div>
+        <div style="font-size:11px;color:var(--text-2);text-align:center;max-width:340px;margin-top:4px;line-height:1.4;">
+          ${isScanning 
+            ? 'Sending fast TCP probes across all subnet IPs on 11 ports (80, 81, 82, 554, 3000, 4747, 5000, 8080, 8081, 8888, 9000)...' 
+            : (stats 
+                ? `Scanned <b>${stats.hostsScanned}</b> LAN hosts (${stats.subnets.join(', ')}) across ${stats.portsScanned || 11} ports in ${stats.durationMs}ms. No devices responded. Ensure your rover/camera is powered on and connected to this WiFi network, or connect directly to its hotspot (192.168.4.1).` 
+                : 'Click "Scan WiFi Subnet" to search your local network for all active devices (ESP32, IP cameras, phones, Raspberry Pi), or enter your device IP directly in Manual Setup.')}
         </div>
         <div style="display:flex;gap:8px;margin-top:12px;">
-          <button class="btn btn-secondary btn-sm" data-action="scan-esp32" ${isScanning ? 'disabled' : ''}>
+          <button class="btn btn-primary btn-sm" data-action="scan-esp32" ${isScanning ? 'disabled' : ''}>
             <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" class="${isScanning ? 'spin' : ''}"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-            ${isScanning ? 'Scanning...' : 'Rescan Subnet'}
+            ${isScanning ? 'Scanning...' : 'Scan WiFi Subnet'}
           </button>
-          <button class="btn btn-primary btn-sm" data-action="switch-esp32-tab" data-tab="manual">
+          <button class="btn btn-secondary btn-sm" data-action="switch-esp32-tab" data-tab="manual">
             Manual IP Setup
           </button>
         </div>
@@ -722,11 +726,11 @@ function renderEsp32Modal() {
     <div class="esp-scanner-top">
       <div class="esp-scanner-status">
         <span class="scanner-pulse ${isScanning ? 'active' : ''}"></span>
-        <span>${isScanning ? 'Scanning 2.4GHz WiFi Subnet...' : `Discovered <b>${discovered.length}</b> ESP32 WiFi vehicles`}</span>
+        <span>${isScanning ? 'Scanning WiFi Subnet (all ports)...' : `Discovered <b>${discovered.length}</b> WiFi device${discovered.length !== 1 ? 's' : ''}`}</span>
       </div>
       <div style="display:flex;align-items:center;gap:6px;">
         ${discovered.length > 0 ? `
-          <button class="btn btn-primary btn-sm" data-action="connect-all-esp32" title="Connect and link all discovered ESP32 units to the scout fleet simultaneously">
+          <button class="btn btn-primary btn-sm" data-action="connect-all-esp32" title="Connect and link all discovered devices to the scout fleet simultaneously">
             <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><polyline points="9 11 12 14 22 4"/></svg>
             Connect All Devices
           </button>` : ''}
@@ -741,7 +745,7 @@ function renderEsp32Modal() {
     </div>
     <div class="esp-tip-box">
       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-      <div><b>${isLive ? 'Live Hardware Setup:' : 'Quick Connection Guide:'}</b> Connect your computer to your ESP32 rover's WiFi Access Point (e.g. <code>192.168.4.1</code>) or ensure both devices share the same local router. In <b>Live Feeds</b> mode, all simulated data is removed.</div>
+      <div><b>${isLive ? 'Live Hardware Setup:' : 'Quick Connection Guide:'}</b> Connect your computer to your rover's WiFi hotspot (e.g. <code>192.168.4.1</code> for ESP32 SoftAP) or ensure both devices share the same local router. Supports ESP32-CAM, IP cameras, Raspberry Pi, DroidCam, and any HTTP camera stream. In <b>Live Feeds</b> mode, all simulated data is removed.</div>
     </div>`;
   } else if (activeTab === 'manual') {
     // Manual setup tab
@@ -764,8 +768,8 @@ function renderEsp32Modal() {
       </div>
       <div class="form-grid-2">
         <div class="form-row">
-          <label class="form-label">ESP32 IP / Host</label>
-          <input type="text" id="manualEspIp" class="form-input" value="192.168.1.${105 + rovers.filter(r => r.isEsp32).length}" placeholder="192.168.4.1 or 192.168.1.x" />
+          <label class="form-label">Device IP / Host</label>
+          <input type="text" id="manualEspIp" class="form-input" value="192.168.4.1" placeholder="192.168.4.1, 192.168.1.x, or any IP" />
         </div>
         <div class="form-row">
           <label class="form-label">Stream Port</label>
@@ -858,8 +862,8 @@ function renderEsp32Modal() {
               </svg>
             </div>
             <div>
-              <div class="mh-title">Connect ESP32 WiFi Rover &amp; Drone</div>
-              <div class="mh-sub">Live 2.4GHz WiFi link for ESP32-CAM, ESP32-S3 &amp; Physical IoT Hardware</div>
+              <div class="mh-title">Connect WiFi Rover &amp; Drone</div>
+              <div class="mh-sub">Live WiFi link for ESP32-CAM, IP Cameras, Raspberry Pi, DroidCam &amp; any network device</div>
             </div>
           </div>
           <button class="modal-close-btn" data-action="close-esp32-modal" aria-label="Close modal">&times;</button>

@@ -8,6 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 const os = require('os');
+const net = require('net');
 
 const PORT = process.env.PORT || 8080;
 const PUBLIC_DIR = __dirname;
@@ -119,70 +120,230 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // ---------- ESP32 API ENDPOINTS ----------
+  // ---------- UNIVERSAL NETWORK DEVICE SCANNER ----------
   if (pathname === '/api/esp32/scan') {
-    // Get local network IPv4 subnet interfaces (e.g. 192.168.1.x, 10.0.0.x, 172.20.10.x)
+    const startTime = Date.now();
     const interfaces = os.networkInterfaces();
     const localIps = [];
+    const subnetsToScan = [];
+
+    // All common camera / stream / webserver ports to probe
+    const SCAN_PORTS = [81, 80, 82, 8080, 8081, 8888, 554, 5000, 3000, 4747, 9000];
+
+    // Always probe 192.168.4.x (ESP32 standard SoftAP Hotspot range)
+    subnetsToScan.push({ prefix: '192.168.4.', start: 1, end: 10, label: 'ESP32 SoftAP Hotspot (192.168.4.x)' });
+
     for (const name of Object.keys(interfaces)) {
       for (const iface of interfaces[name]) {
         if (iface.family === 'IPv4' && !iface.internal) {
           localIps.push(iface.address);
+          const parts = iface.address.split('.');
+          if (parts.length === 4) {
+            const prefix = `${parts[0]}.${parts[1]}.${parts[2]}.`;
+            if (!subnetsToScan.some(s => s.prefix === prefix)) {
+              subnetsToScan.push({ prefix, start: 1, end: 254, myIp: iface.address, label: `${name} (${prefix}0/24)` });
+            }
+          }
         }
       }
     }
 
-    const defaultEspDevices = [
-      {
-        id: 'ESP-ROVER-01',
-        name: 'ESP32-CAM Scout Alpha',
-        type: 'ground',
-        ip: '192.168.4.1',
-        port: 81,
-        streamPath: '/stream',
-        rssi: -48,
-        mac: '24:6F:28:AE:3C:80',
-        battery: 95,
-        chipset: 'ESP32-CAM (OV2640)',
-        status: 'Available',
-        features: ['MJPEG Stream', 'Flash LED', 'Dual Motor Drive', 'GPS Telemetry']
-      },
-      {
-        id: 'ESP-DRONE-01',
-        name: 'ESP32-S3 SkyScout Flyer',
-        type: 'aerial',
-        ip: '192.168.1.108',
-        port: 81,
-        streamPath: '/stream',
-        rssi: -58,
-        mac: '84:CC:A8:92:4F:1A',
-        battery: 88,
-        chipset: 'ESP32-S3 (OV5640)',
-        status: 'Available',
-        features: ['HD Aerial Feed', 'Altitude Hold', 'Auto-Return', 'Telemetry Uplink']
-      },
-      {
-        id: 'ESP-ROVER-02',
-        name: 'ESP32 Micro-Scout Beta',
-        type: 'ground',
-        ip: '192.168.1.142',
-        port: 80,
-        streamPath: '/mjpeg',
-        rssi: -64,
-        mac: '30:AE:A4:17:B9:5D',
-        battery: 76,
-        chipset: 'ESP32-WROVER-E',
-        status: 'Available',
-        features: ['All-Terrain Tracks', 'Obstacle LiDAR', 'Night Vision IR']
+    // Fast TCP port prober
+    function probePort(ip, port, timeoutMs = 300) {
+      return new Promise((resolve) => {
+        const socket = new net.Socket();
+        let settled = false;
+        socket.setTimeout(timeoutMs);
+        socket.on('connect', () => { if (!settled) { settled = true; socket.destroy(); resolve(true); } });
+        socket.on('timeout', () => { if (!settled) { settled = true; socket.destroy(); resolve(false); } });
+        socket.on('error', () => { if (!settled) { settled = true; socket.destroy(); resolve(false); } });
+        try { socket.connect(port, ip); } catch (e) { resolve(false); }
+      });
+    }
+
+    // Quick HTTP GET to fingerprint a device (returns body string or null)
+    function httpGet(ip, port, path, timeoutMs = 800) {
+      return new Promise((resolve) => {
+        const req = http.get({ hostname: ip, port, path, timeout: timeoutMs }, (res) => {
+          let body = '';
+          res.on('data', c => body += c);
+          res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body }));
+        });
+        req.on('error', () => resolve(null));
+        req.on('timeout', () => { req.destroy(); resolve(null); });
+      });
+    }
+
+    const realFoundDevices = [];
+    let totalHostsScanned = 0;
+
+    for (const subnet of subnetsToScan) {
+      const targetIps = [];
+      for (let i = subnet.start; i <= subnet.end; i++) {
+        const ip = `${subnet.prefix}${i}`;
+        if (ip !== subnet.myIp) targetIps.push(ip);
       }
-    ];
+      totalHostsScanned += targetIps.length;
+
+      // Scan in parallel batches of 50
+      const batchSize = 50;
+      for (let bi = 0; bi < targetIps.length; bi += batchSize) {
+        const batch = targetIps.slice(bi, bi + batchSize);
+        await Promise.all(batch.map(async (ip) => {
+          // Probe all ports in parallel for this IP
+          const portResults = await Promise.all(SCAN_PORTS.map(async (port) => {
+            const open = await probePort(ip, port, 300);
+            return { port, open };
+          }));
+
+          const openPorts = portResults.filter(p => p.open).map(p => p.port);
+          if (openPorts.length === 0) return;
+
+          // Fingerprint the device
+          let deviceType = 'unknown';
+          let chipset = 'Network Device';
+          let streamPort = openPorts[0];
+          let streamPath = '/';
+          let features = [];
+          let name = `Device-${ip.split('.')[3]}`;
+
+          // Try ESP32-CAM fingerprint: /status on port 80
+          if (openPorts.includes(80)) {
+            const statusResp = await httpGet(ip, 80, '/status', 600);
+            if (statusResp && statusResp.body) {
+              try {
+                const sj = JSON.parse(statusResp.body);
+                if (sj.framesize !== undefined || sj.quality !== undefined) {
+                  deviceType = 'esp32-cam';
+                  chipset = 'ESP32-CAM (OV2640)';
+                  name = `ESP32-CAM-${ip.split('.')[3]}`;
+                  features.push('ESP32 Camera Server', 'MJPEG Stream', 'Motor Control');
+                }
+              } catch (e) { /* not JSON, check content */ }
+              if (deviceType === 'unknown' && statusResp.body.toLowerCase().includes('esp')) {
+                deviceType = 'esp32';
+                chipset = 'ESP32 Board';
+                name = `ESP32-${ip.split('.')[3]}`;
+                features.push('ESP32 WebServer');
+              }
+            }
+          }
+
+          // Determine best stream configuration
+          if (openPorts.includes(81)) {
+            streamPort = 81;
+            streamPath = '/stream';
+            if (deviceType === 'unknown') {
+              deviceType = 'esp32-cam';
+              chipset = 'ESP32-CAM (OV2640)';
+              name = `ESP32-CAM-${ip.split('.')[3]}`;
+              features.push('MJPEG Stream (Port 81)');
+            }
+          } else if (openPorts.includes(82)) {
+            streamPort = 82;
+            streamPath = '/stream';
+            features.push('Camera Stream (Port 82)');
+          } else if (openPorts.includes(8080)) {
+            streamPort = 8080;
+            streamPath = '/video';
+            if (deviceType === 'unknown') { deviceType = 'ip-camera'; chipset = 'IP Camera / Webcam'; name = `IPCam-${ip.split('.')[3]}`; }
+            features.push('HTTP Video (Port 8080)');
+          } else if (openPorts.includes(4747)) {
+            streamPort = 4747;
+            streamPath = '/video';
+            if (deviceType === 'unknown') { deviceType = 'droidcam'; chipset = 'DroidCam / Phone Camera'; name = `PhoneCam-${ip.split('.')[3]}`; }
+            features.push('DroidCam Stream (Port 4747)');
+          } else if (openPorts.includes(8081)) {
+            streamPort = 8081;
+            streamPath = '/stream';
+            features.push('Stream (Port 8081)');
+          } else if (openPorts.includes(554)) {
+            streamPort = 554;
+            streamPath = '/';
+            if (deviceType === 'unknown') { deviceType = 'rtsp-camera'; chipset = 'RTSP Camera'; name = `RTSPCam-${ip.split('.')[3]}`; }
+            features.push('RTSP (Port 554)');
+          } else if (openPorts.includes(80)) {
+            streamPort = 80;
+            streamPath = '/mjpeg';
+            if (deviceType === 'unknown') { deviceType = 'webserver'; chipset = 'Web Server'; name = `WebDev-${ip.split('.')[3]}`; }
+            features.push('HTTP Server (Port 80)');
+          }
+
+          if (openPorts.includes(80) && !features.some(f => f.includes('80'))) features.push('Web Control (Port 80)');
+          if (openPorts.includes(5000)) features.push('API Server (Port 5000)');
+          if (openPorts.includes(3000)) features.push('Dev Server (Port 3000)');
+          if (openPorts.includes(9000)) features.push('Service (Port 9000)');
+
+          const roverType = (deviceType === 'esp32-cam' || deviceType === 'esp32') ? 'ground' : 'ground';
+
+          realFoundDevices.push({
+            id: `DEV-${ip.replace(/\./g, '-')}`,
+            name: name,
+            type: roverType,
+            ip: ip,
+            port: streamPort,
+            streamPath: streamPath,
+            openPorts: openPorts,
+            rssi: -42,
+            battery: 95,
+            chipset: chipset,
+            deviceType: deviceType,
+            status: 'Online (Real Hardware)',
+            isRealHardware: true,
+            features: features.length > 0 ? features : [`TCP Open: ${openPorts.join(', ')}`]
+          });
+        }));
+      }
+    }
+
+    const durationMs = Date.now() - startTime;
+    console.log(`[HYDRA Network Scanner] Probed ${totalHostsScanned} hosts across ${SCAN_PORTS.length} ports in ${durationMs}ms. Found ${realFoundDevices.length} live devices.`);
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({
-      devices: defaultEspDevices,
-      scannedAt: new Date().toISOString(),
-      subnet: localIps.join(', ') || '2.4GHz WiFi / LAN',
-      activeInterfaces: localIps
+      devices: realFoundDevices,
+      totalHostsScanned: totalHostsScanned,
+      portsScanned: SCAN_PORTS,
+      scanDurationMs: durationMs,
+      subnetsScanned: subnetsToScan.map(s => s.label),
+      activeInterfaces: localIps,
+      scannedAt: new Date().toISOString()
+    }));
+  }
+
+  // ---------- SINGLE IP QUICK PROBE ----------
+  if (pathname === '/api/probe') {
+    const targetIp = parsedUrl.searchParams.get('ip');
+    if (!targetIp) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ error: 'Missing ?ip= parameter' }));
+    }
+
+    const PROBE_PORTS = [81, 80, 82, 8080, 8081, 4747, 554, 5000, 3000];
+    function probePortSingle(ip, port, timeoutMs = 500) {
+      return new Promise((resolve) => {
+        const socket = new net.Socket();
+        let settled = false;
+        socket.setTimeout(timeoutMs);
+        socket.on('connect', () => { if (!settled) { settled = true; socket.destroy(); resolve(true); } });
+        socket.on('timeout', () => { if (!settled) { settled = true; socket.destroy(); resolve(false); } });
+        socket.on('error', () => { if (!settled) { settled = true; socket.destroy(); resolve(false); } });
+        try { socket.connect(port, ip); } catch (e) { resolve(false); }
+      });
+    }
+
+    const results = await Promise.all(PROBE_PORTS.map(async p => {
+      const open = await probePortSingle(targetIp, p);
+      return { port: p, open };
+    }));
+    const openPorts = results.filter(r => r.open).map(r => r.port);
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({
+      ip: targetIp,
+      alive: openPorts.length > 0,
+      openPorts: openPorts,
+      timestamp: new Date().toISOString()
     }));
   }
 
