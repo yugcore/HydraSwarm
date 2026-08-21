@@ -1043,17 +1043,7 @@ const HYDRA_TOOLTIP = {
     const cleanText = text.replace(/<[^>]*>?/gm, '').trim();
     if (!cleanText) return;
 
-    let category = '';
-    if (target.classList.contains('hazard-name')) category = 'DISASTER HAZARD';
-    else if (target.classList.contains('hazard-loc')) category = 'GEO LOCATION';
-    else if (target.classList.contains('rover-name') || target.classList.contains('dr-name') || target.classList.contains('hds-r-name')) category = 'FLEET UNIT';
-    else if (target.classList.contains('st-name')) category = 'COMMAND STATION';
-    else if (target.classList.contains('cbl-name')) category = 'CARGO PAYLOAD';
-
-    this.tooltipEl.innerHTML = `
-      ${category ? `<div class="tooltip-header"><span class="tooltip-dot"></span>${category}</div>` : ''}
-      <div class="tooltip-body">${cleanText}</div>
-    `;
+    this.tooltipEl.innerHTML = `<div class="tooltip-body">${cleanText}</div>`;
 
     this.tooltipEl.classList.add('visible');
     const x = e ? e.clientX : target.getBoundingClientRect().left;
