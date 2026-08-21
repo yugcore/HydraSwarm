@@ -65,6 +65,8 @@ function renderStatusbar() {
   const activeHazards = hazards.filter(h => h.status === 'Active').length;
   const deployedRovers = fleetRovers.filter(r => r.status === 'Deployed' || r.status === 'On Site').length;
   const connectedUnits = fleetRovers.filter(r => r.connection !== 'none').length;
+  const readyAirlifters = (typeof heavyRovers !== 'undefined') ? heavyRovers.filter(r => r.status === 'Ready' && r.payloadStatus === 'loaded').length : 0;
+  const inFlightAirlifters = (typeof heavyRovers !== 'undefined') ? heavyRovers.filter(r => r.status === 'Deployed' || r.status === 'Returning').length : 0;
   
   const apiConnected = HYDRA_API.status.usgs === 'connected' || HYDRA_API.status.nasa === 'connected';
   const apiText = isLive ? (apiConnected ? 'USGS & NASA Feeds Live' : 'Live Feeds Operational') : 'Simulation Engine Active';
@@ -76,7 +78,9 @@ function renderStatusbar() {
       <div class="stat-divider"></div>
       <div class="stat"><span class="stat-lbl">Real Hazards</span><b>${activeHazards}</b></div>
       <div class="stat-divider"></div>
-      <div class="stat"><span class="stat-lbl">${isLive ? 'Live Units' : 'Deployed Units'}</span><b>${deployedRovers}</b></div>
+      <div class="stat"><span class="stat-lbl">${isLive ? 'Live Units' : 'Deployed Scouts'}</span><b>${deployedRovers}</b></div>
+      <div class="stat-divider"></div>
+      <div class="stat"><span class="stat-lbl">Heavy Reinforce</span><b>${readyAirlifters} Loaded &bull; ${inFlightAirlifters} In Flight</b></div>
       <div class="stat-divider"></div>
       <div class="stat"><span class="stat-lbl">${isLive ? 'WiFi Hardware' : 'Fleet Link'}</span><b>${connectedUnits} / ${fleetRovers.length}</b></div>
     </div>
@@ -99,7 +103,23 @@ function renderRoverBadge(status) {
   }
 }
 
-/* ---------- ROVER PANEL (FLEET BENTO TILES) ---------- */
+function renderHeavyRoverBadge(hr) {
+  if (hr.status === 'Deployed') {
+    return `<span class="rover-badge badge-deployed"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg> In Flight</span>`;
+  }
+  if (hr.status === 'Returning') {
+    return `<span class="rover-badge badge-returning"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 14L4 9l5-5"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg> RTB</span>`;
+  }
+  if (hr.status === 'Ready') {
+    if (hr.payloadStatus === 'loaded') {
+      return `<span class="rover-badge badge-ready"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Loaded</span>`;
+    }
+    return `<span class="rover-badge badge-unloaded">Empty</span>`;
+  }
+  return `<span class="rover-badge badge-offline">${hr.status}</span>`;
+}
+
+/* ---------- ROVER PANEL WITH SCOUT & REINFORCEMENTS TABS ---------- */
 function renderRoverPanel() {
   const isLive = state.mode === 'live';
   const activeStation = (typeof getStationById === 'function')
@@ -107,92 +127,293 @@ function renderRoverPanel() {
     : HYDRA_STATIONS[0];
   const fleetRovers = isLive ? rovers.filter(r => r.isEsp32) : rovers;
   const espConnectedCount = rovers.filter(r => r.isEsp32).length;
+  const currentTab = state.leftPanelTab || 'rovers';
+  const heavyCount = (typeof heavyRovers !== 'undefined') ? heavyRovers.length : 0;
+
+  // Render 100% Width Tab Switcher
+  const tabHeaderHtml = `
+    <div class="left-panel-tab-bar">
+      <button class="panel-tab-btn ${currentTab === 'rovers' ? 'active' : ''}" data-action="switch-left-tab" data-tab="rovers" title="Scout Fleet">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="9" width="18" height="9" rx="1.5"/><circle cx="7.5" cy="18" r="1.6"/><circle cx="16.5" cy="18" r="1.6"/></svg>
+        <span>Scout Fleet</span>
+        <span class="tab-badge">${fleetRovers.length}</span>
+      </button>
+      <button class="panel-tab-btn ${currentTab === 'reinforcements' ? 'active' : ''}" data-action="switch-left-tab" data-tab="reinforcements" title="Reinforcement Supply System">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <span>Reinforcements</span>
+        <span class="tab-badge">${heavyCount}</span>
+      </button>
+    </div>
+  `;
 
   let contentHtml = '';
-  if (isLive && fleetRovers.length === 0) {
-    contentHtml = `
-      <div class="rover-empty-live">
-        <div class="wifi-empty-icon">
-          <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.8">
-            <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
-            <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
-            <circle cx="12" cy="20" r="1.5" fill="currentColor"/>
-          </svg>
-        </div>
-        <div class="es-title" style="margin-top:8px;font-size:12px;font-weight:700;color:var(--text-0);">No Real Hardware Linked</div>
-        <div class="es-sub" style="margin-top:4px;text-align:center;max-width:210px;font-size:10.5px;color:var(--text-3);line-height:1.4;">
-          In <b>Live Feeds</b> mode, all simulated data is unwired. Connect your real physical ESP32-CAM rovers &amp; drones over WiFi.
-        </div>
-        <button class="btn btn-primary btn-sm" data-action="open-esp32-modal" style="margin-top:12px;">
-          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><line x1="12" y1="20" x2="12.01" y2="20" stroke-width="3"/></svg>
-          Connect Physical WiFi Rover
-        </button>
-      </div>`;
-  } else {
-    contentHtml = fleetRovers.map(r => {
-      const selected = state.selectedRoverId === r.id;
-      const isDeployed = r.status === 'Deployed' || r.status === 'On Site';
-      const feedOn = state.liveFeedRoverId === r.id;
-      const telem = HYDRA_TELEMETRY.getRoverTelemetry(r.id);
-      const etaText = isDeployed ? HYDRA_TELEMETRY.formatEta(telem.etaSeconds) : '—';
-      const isEsp = !!r.isEsp32;
 
-      return `
-      <div class="rover-card ${selected ? 'selected' : ''} ${isEsp ? 'rover-card-esp32' : ''}" data-action="select-rover" data-id="${r.id}">
-        <div class="rover-top">
-          <div class="rover-id">
-            <span class="rover-type-icon ${isEsp ? 'esp32-icon' : ''}">${typeIcon(r.type)}</span>
-            <span class="rover-name">${r.name}</span>
-            ${isEsp ? `<span class="esp32-badge" title="ESP32 WiFi Hardware Device &middot; ${r.ip}"><svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><line x1="12" y1="20" x2="12.01" y2="20" stroke-width="3.5"/></svg> ESP32</span>` : ''}
+  if (currentTab === 'reinforcements') {
+    contentHtml = renderReinforcementPanelContent();
+  } else {
+    if (isLive && fleetRovers.length === 0) {
+      contentHtml = `
+        <div class="rover-empty-live">
+          <div class="wifi-empty-icon">
+            <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+              <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+              <circle cx="12" cy="20" r="1.5" fill="currentColor"/>
+            </svg>
           </div>
-          ${renderRoverBadge(r.status)}
-        </div>
-        <div class="rover-meta">${r.task}${isEsp ? ` &middot; <span class="esp-ip-text">${r.ip}</span>` : ''}</div>
-        <div class="rover-stats">
-          <div class="rover-stat">
-            <span class="stat-sub">BATT</span>
-            <span class="batt-track"><span class="batt-fill ${battClass(r.battery)}" style="width:${r.battery}%"></span></span>
-            <span style="font-weight:600;">${r.battery}%</span>
+          <div class="es-title" style="margin-top:8px;font-size:12px;font-weight:700;color:var(--text-0);">No Real Hardware Linked</div>
+          <div class="es-sub" style="margin-top:4px;text-align:center;max-width:210px;font-size:10.5px;color:var(--text-3);line-height:1.4;">
+            In <b>Live Feeds</b> mode, connect your physical ESP32-CAM rovers over WiFi.
           </div>
-          ${isDeployed ? `<div class="rover-stat" style="color:var(--accent-cyan);font-weight:600;">${telem.speed.toFixed(0)} km/h</div>` : ''}
-          ${isDeployed ? `<div class="rover-stat" style="color:var(--accent-amber);font-weight:600;">ETA ${etaText}</div>` : ''}
-          ${isEsp ? `<div class="rover-stat esp32-rssi" title="WiFi RSSI: ${r.rssi || -52} dBm"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="currentColor"/></svg> ${r.rssi || -52} dBm</div>` : `<div class="rover-stat">${connPips(r.connection)}</div>`}
-        </div>
-        <div class="rover-actions">
-          ${isDeployed || isEsp ? `
-            <button class="mini-btn ${feedOn ? 'feed-on' : ''}" data-action="toggle-feed" data-id="${r.id}">
-              <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:3px;"><rect x="2" y="6" width="14" height="12" rx="1.6"/><path d="M16 10.5l6-3.5v10l-6-3.5"/></svg>
-              ${feedOn ? 'Feed Active' : 'Live Camera Feed'}
-            </button>` : ``}
-          ${isEsp ? `
-            <button class="mini-btn mini-btn-danger" data-action="disconnect-esp32" data-id="${r.id}" title="Disconnect ESP32 WiFi connection">
-              Disconnect
-            </button>` : ``}
-        </div>
-      </div>`;
-    }).join('');
+          <button class="btn btn-primary btn-sm" data-action="open-esp32-modal" style="margin-top:12px;">
+            Connect Physical WiFi Rover
+          </button>
+        </div>`;
+    } else {
+      const scoutActionBarHtml = `
+        <div class="scout-action-bar">
+          <button class="scout-connect-btn" data-action="open-esp32-modal" title="Connect physical ESP32-CAM, ESP32-S3, or custom WiFi rover hardware">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <svg class="wifi-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+                <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+                <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+                <circle cx="12" cy="20" r="1.5" fill="currentColor"/>
+              </svg>
+              <span>+ Connect WiFi Rover</span>
+            </div>
+            ${espConnectedCount > 0 
+              ? `<span class="wifi-pill-count">${espConnectedCount} Linked</span>` 
+              : `<span class="wifi-sub-hint">ESP32 / IoT</span>`}
+          </button>
+        </div>`;
+
+      contentHtml = scoutActionBarHtml + fleetRovers.map(r => {
+        const selected = state.selectedRoverId === r.id;
+        const isDeployed = r.status === 'Deployed' || r.status === 'On Site';
+        const feedOn = state.liveFeedRoverId === r.id;
+        const telem = HYDRA_TELEMETRY.getRoverTelemetry(r.id);
+        const etaText = isDeployed ? HYDRA_TELEMETRY.formatEta(telem.etaSeconds) : '—';
+        const isEsp = !!r.isEsp32;
+
+        return `
+        <div class="rover-card ${selected ? 'selected' : ''} ${isEsp ? 'rover-card-esp32' : ''}" data-action="select-rover" data-id="${r.id}">
+          <div class="rover-top">
+            <div class="rover-id">
+              <span class="rover-type-icon ${isEsp ? 'esp32-icon' : ''}">${typeIcon(r.type)}</span>
+              <span class="rover-name" title="${r.name}">${r.name}</span>
+              ${isEsp ? `<span class="esp32-badge">ESP32</span>` : ''}
+            </div>
+            ${renderRoverBadge(r.status)}
+          </div>
+          <div class="rover-meta">${r.task}${isEsp ? ` &middot; ${r.ip}` : ''}</div>
+          <div class="rover-stats">
+            <div class="rover-stat">
+              <span class="stat-sub">BATT</span>
+              <span class="batt-track"><span class="batt-fill ${battClass(r.battery)}" style="width:${r.battery}%"></span></span>
+              <span>${r.battery}%</span>
+            </div>
+            ${isDeployed ? `<div class="rover-stat">${telem.speed.toFixed(0)} km/h</div>` : ''}
+            ${isDeployed ? `<div class="rover-stat">ETA ${etaText}</div>` : ''}
+            ${isEsp ? `<div class="rover-stat">${r.rssi || -52} dBm</div>` : `<div class="rover-stat">${connPips(r.connection)}</div>`}
+          </div>
+          <div class="rover-actions">
+            ${isDeployed || isEsp ? `
+              <button class="mini-btn ${feedOn ? 'feed-on' : ''}" data-action="toggle-feed" data-id="${r.id}">
+                <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:3px;"><rect x="2" y="6" width="14" height="12" rx="1.6"/><path d="M16 10.5l6-3.5v10l-6-3.5"/></svg>
+                ${feedOn ? 'Feed Active' : 'Live Feed'}
+              </button>` : ``}
+            ${isEsp ? `
+              <button class="mini-btn mini-btn-danger" data-action="disconnect-esp32" data-id="${r.id}">
+                Disconnect
+              </button>` : ``}
+          </div>
+        </div>`;
+      }).join('');
+    }
   }
 
   return `
   <div class="col col-left">
-    <div class="col-header">
-      <div class="col-header-title-group">
-        <span class="col-title">${isLive ? 'Live Scout Fleet' : `${activeStation.shortName} Fleet`}</span>
-        <button class="wifi-connect-btn" data-action="open-esp32-modal" title="Connect ESP32 WiFi Rover / Drone (ESP32-CAM, ESP32-S3, IoT)">
-          <svg class="wifi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-            <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
-            <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
-            <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
-            <circle cx="12" cy="20" r="1.5" fill="currentColor"/>
-          </svg>
-          <span class="wifi-btn-text">Connect WiFi</span>
-          ${espConnectedCount > 0 ? `<span class="wifi-pill-count">${espConnectedCount}</span>` : ''}
-        </button>
-      </div>
-      <span class="col-count">${fleetRovers.length}</span>
+    <div class="col-header col-header-tabs">
+      ${tabHeaderHtml}
     </div>
     <div class="col-body">${contentHtml}</div>
   </div>`;
+}
+
+/* ---------- REINFORCEMENT SUPPLY TAB CONTENT GENERATOR ---------- */
+function renderReinforcementPanelContent() {
+  const list = typeof heavyRovers !== 'undefined' ? heavyRovers : [];
+  const filter = state.reinforcementFilter || 'all';
+
+  const loadedCount = list.filter(r => r.status === 'Ready' && r.payloadStatus === 'loaded').length;
+  const unloadedCount = list.filter(r => r.status === 'Ready' && r.payloadStatus === 'unloaded').length;
+  const inFlightCount = list.filter(r => r.status === 'Deployed' || r.status === 'Returning').length;
+
+  const filteredList = list.filter(r => {
+    if (filter === 'loaded') return r.status === 'Ready' && r.payloadStatus === 'loaded';
+    if (filter === 'unloaded') return r.status === 'Ready' && r.payloadStatus === 'unloaded';
+    if (filter === 'inflight') return r.status === 'Deployed' || r.status === 'Returning';
+    return true;
+  });
+
+  const isDropModeActive = !!state.dropDesignationActive;
+
+  // Clean 4-column compact filter grid (no overflow)
+  const filterPillsHtml = `
+    <div class="reinforce-filter-row">
+      <button class="rf-pill ${filter === 'all' ? 'active' : ''}" data-action="set-reinforce-filter" data-filter="all">All (${list.length})</button>
+      <button class="rf-pill ${filter === 'loaded' ? 'active' : ''}" data-action="set-reinforce-filter" data-filter="loaded">Loaded (${loadedCount})</button>
+      <button class="rf-pill ${filter === 'unloaded' ? 'active' : ''}" data-action="set-reinforce-filter" data-filter="unloaded">Empty (${unloadedCount})</button>
+      <button class="rf-pill ${filter === 'inflight' ? 'active' : ''}" data-action="set-reinforce-filter" data-filter="inflight">In Flight (${inFlightCount})</button>
+    </div>
+  `;
+
+  // Clean, unified action card
+  const bannerActionHtml = `
+    <div class="reinforce-action-card ${isDropModeActive ? 'drop-active' : ''}">
+      <div class="rac-top">
+        <div class="rac-title-group">
+          <span class="rac-icon"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span>
+          <div>
+            <div class="rac-title">${isDropModeActive ? 'Drop Targeting Active' : 'Heavy Aerial Reinforcements'}</div>
+            <div class="rac-sub">${isDropModeActive ? 'Click ANY point on map to dispatch drop' : 'High-payload air rovers &bull; Emergency relief'}</div>
+          </div>
+        </div>
+      </div>
+      <div class="rac-btns">
+        <button class="btn btn-sm ${isDropModeActive ? 'btn-danger' : 'btn-primary'}" data-action="toggle-drop-designation" style="flex:1;">
+          ${isDropModeActive ? '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Cancel Drop' : '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg> Drop on Map'}
+        </button>
+        <button class="btn btn-sm rac-arm-btn" data-action="quick-arm-all-medikits" title="Arm all ready rovers with Medikits">
+          Arm All Units
+        </button>
+      </div>
+    </div>
+  `;
+
+  const cardsHtml = filteredList.map(hr => {
+    const isSelected = state.selectedHeavyRoverId === hr.id;
+    const isLoaded = hr.payloadStatus === 'loaded';
+    const isDeployed = hr.status === 'Deployed' || hr.status === 'Returning';
+    const telem = HYDRA_TELEMETRY.getRoverTelemetry(hr.id);
+    const etaText = isDeployed ? HYDRA_TELEMETRY.formatEta(telem.etaSeconds) : '—';
+    const payload = hr.payloadId ? getPayloadById(hr.payloadId) : null;
+
+    let cargoBayHtml = '';
+    if (isLoaded && payload) {
+      cargoBayHtml = `
+        <div class="cargo-bay-loaded">
+          <div class="cbl-head">
+            <span class="cbl-icon">${payloadIcon(payload.icon)}</span>
+            <div style="min-width:0;flex:1;">
+              <div class="cbl-name" title="${payload.name}">${payload.name}</div>
+              <div class="cbl-meta">${payload.weight} &middot; ${payload.category}</div>
+            </div>
+            ${!isDeployed ? `
+              <button class="cbl-unload-btn" data-action="unload-heavy-payload" data-id="${hr.id}" title="Unload cargo bay">
+                Unload
+              </button>` : ''}
+          </div>
+          <div class="cbl-desc">${payload.desc}</div>
+        </div>`;
+    } else if (!isDeployed) {
+      const optionsHtml = SUPPLY_PAYLOADS.map(p => `
+        <option value="${p.id}">${p.shortName} (${p.weight})</option>
+      `).join('');
+
+      cargoBayHtml = `
+        <div class="cargo-bay-empty">
+          <div class="cbe-title">
+            <span>Cargo Bay Empty &mdash; Select Supply Payload:</span>
+          </div>
+          <div class="cbe-controls">
+            <select class="payload-select" id="payloadSelect_${hr.id}">
+              ${optionsHtml}
+            </select>
+            <button class="mini-btn btn-primary" data-action="load-heavy-payload" data-id="${hr.id}">
+              Load
+            </button>
+          </div>
+          <div class="quick-payload-pills">
+            <button class="q-pill" data-action="quick-load-single" data-id="${hr.id}" data-payload="medikit_trauma">+ Medikits</button>
+            <button class="q-pill" data-action="quick-load-single" data-id="${hr.id}" data-payload="plasma_coldbox">+ Plasma</button>
+            <button class="q-pill" data-action="quick-load-single" data-id="${hr.id}" data-payload="water_purify">+ Water</button>
+          </div>
+        </div>`;
+    }
+
+    return `
+    <div class="rover-card heavy-rover-card ${isSelected ? 'selected' : ''}" data-action="select-heavy-rover" data-id="${hr.id}">
+      <div class="rover-top">
+        <div class="rover-id">
+          <span class="rover-type-icon heavylift-icon">${heavyAirframeIcon()}</span>
+          <span class="rover-name" title="${hr.name}">${hr.name}</span>
+        </div>
+        ${renderHeavyRoverBadge(hr)}
+      </div>
+      <div class="rover-meta">
+        <span>${hr.airframe}</span> &bull; <span class="cap-tag">${hr.capacity}</span> &bull; <span>${hr.baseName}</span>
+      </div>
+
+      <!-- Cargo Bay Visualizer -->
+      ${cargoBayHtml}
+
+      <!-- Flight Telemetry & Stats -->
+      <div class="rover-stats">
+        <div class="rover-stat">
+          <span class="stat-sub">BATT</span>
+          <span class="batt-track"><span class="batt-fill ${battClass(hr.battery)}" style="width:${hr.battery}%"></span></span>
+          <span>${hr.battery}%</span>
+        </div>
+        <div class="rover-stat">
+          <span class="stat-sub">SPEED</span>
+          <span>${isDeployed ? `${telem.speed.toFixed(0)} km/h` : `${hr.speedKmH || 78} km/h`}</span>
+        </div>
+        <div class="rover-stat">
+          <span class="stat-sub">${isDeployed ? 'ETA' : 'ALT'}</span>
+          <span>${isDeployed ? etaText : '120m'}</span>
+        </div>
+      </div>
+
+      <!-- Mission Dispatch Action Buttons -->
+      <div class="rover-actions" style="margin-top:8px;">
+        ${!isDeployed ? (isLoaded ? `
+          <button class="deploy-btn heavy-dispatch-btn" data-action="dispatch-heavy-rover" data-id="${hr.id}">
+            Dispatch Drop (Click Map)
+          </button>` : `
+          <button class="deploy-btn" style="background:var(--bg-panel);color:var(--text-1);border:1px solid var(--border-card);" data-action="quick-load-single" data-id="${hr.id}" data-payload="medikit_trauma">
+            + Arm with Medikits
+          </button>`) : `
+          <button class="mini-btn" style="width:100%;" data-action="focus-drop-target" data-id="${hr.id}">
+            Tracking Airdrop Flight &bull; ETA ${etaText}
+          </button>`}
+      </div>
+    </div>`;
+  }).join('') || `<p style="font-size:11.5px;color:var(--text-3);padding:10px 2px;">No heavy lifters matching filter.</p>`;
+
+  const inventorySummaryHtml = `
+    <div class="reinforce-inventory-card">
+      <div class="ric-head">
+        <span class="ric-title">Depot Relief Stock</span>
+        <span class="ric-badge">Regional HQ</span>
+      </div>
+      <div class="ric-grid">
+        <div class="ric-item"><span class="ric-icon">${payloadIcon('medikit')}</span><span><b>48x</b> Medikits</span></div>
+        <div class="ric-item"><span class="ric-icon">${payloadIcon('plasma')}</span><span><b>16x</b> Plasma</span></div>
+        <div class="ric-item"><span class="ric-icon">${payloadIcon('water')}</span><span><b>96x</b> Water</span></div>
+        <div class="ric-item"><span class="ric-icon">${payloadIcon('rations')}</span><span><b>140x</b> Rations</span></div>
+      </div>
+    </div>
+  `;
+
+  return `
+    ${bannerActionHtml}
+    ${filterPillsHtml}
+    <div class="heavy-rovers-list">${cardsHtml}</div>
+    ${inventorySummaryHtml}
+  `;
 }
 
 /* ---------- HAZARD PANEL (INCIDENT BENTO TILES) ---------- */
@@ -201,10 +422,11 @@ function renderHazardPanel() {
     ? getStationById(state.selectedStationId || currentStationId || 'guwahati')
     : HYDRA_STATIONS[0];
 
+  const availableRovers = rovers.filter(r => r.status === 'Ready');
+
   const rows = hazards.map(h => {
     const selected = state.selectedHazardId === h.id;
     const assigned = rovers.filter(r => r.hazardId === h.id);
-    const availableCount = rovers.filter(r => r.status === 'Ready').length;
     const sourceTag = h.source ? `<span class="source-tag">${h.source}</span>` : '';
     
     return `
@@ -225,28 +447,64 @@ function renderHazardPanel() {
         <div class="hazard-loc">${h.location}</div>
         <div class="hazard-time">DETECTED ${h.detected}</div>
       </div>
+
       ${selected ? `
       <div class="hazard-detail">
         <div class="hazard-detail-grid">
           <div class="detail-field"><label>Type</label><span>${h.type}</span></div>
-          <div class="detail-field"><label>Severity</label><span>${h.severity}</span></div>
+          <div class="detail-field"><label>Severity</label><span>${h.severity.toUpperCase()}</span></div>
           <div class="detail-field"><label>Detected</label><span>${h.detected}</span></div>
-          <div class="detail-field"><label>Source</label><span>${h.source || 'Local Sensor'}</span></div>
+          <div class="detail-field"><label>Source</label><span>${h.source || 'Regional Alert'}</span></div>
           ${h.depth ? `<div class="detail-field"><label>Depth</label><span>${h.depth}</span></div>` : ''}
           ${h.magnitude ? `<div class="detail-field"><label>Magnitude</label><span>${h.magnitude}</span></div>` : ''}
           ${h.lat ? `<div class="detail-field"><label>Coordinates</label><span>${h.lat.toFixed(2)}°, ${h.lon.toFixed(2)}°</span></div>` : ''}
         </div>
+
         ${assigned.length ? `
           <div class="assigned-note">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 12l5 5L20 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            ${assigned.length} rover${assigned.length > 1 ? 's' : ''} assigned: ${assigned.map(a => a.name).join(', ')}
+            ${assigned.length} unit${assigned.length > 1 ? 's' : ''} deployed: ${assigned.map(a => a.name).join(', ')}
           </div>
-          <button class="mini-btn" style="width:100%;margin-top:7px;background:var(--accent-amber-dim);color:var(--accent-amber);border-color:var(--accent-amber);" data-action="set-map-view" data-target="${h.id}">
-            Focus Target View
-          </button>` : ``}
-        <button class="deploy-btn" style="margin-top:10px;" data-action="open-deploy" data-id="${h.id}" ${availableCount === 0 ? 'disabled' : ''}>
-          ${availableCount === 0 ? 'No Rovers Available' : 'Deploy Scout Rovers'}
-        </button>
+          <button class="mini-btn" style="width:100%;margin-top:6px;background:var(--bg-panel);border:1px solid var(--border-card);color:var(--text-1);" data-action="set-map-view" data-target="${h.id}">
+            Focus Target on Map
+          </button>
+        ` : ''}
+
+        <!-- Inline Available Units Deployment Section -->
+        <div class="hazard-deploy-section">
+          <div class="hds-header">
+            <span class="hds-title">Available Units to Deploy (${availableRovers.length})</span>
+            ${availableRovers.length > 1 ? `
+              <button class="hds-link-all" data-action="quick-deploy-all-to-hazard" data-id="${h.id}">
+                Deploy All (${availableRovers.length})
+              </button>` : ''}
+          </div>
+
+          <div class="hds-rovers-list">
+            ${availableRovers.length > 0 ? availableRovers.map(r => `
+              <div class="hds-rover-row">
+                <div class="hds-rover-info">
+                  <span class="rover-type-icon">${typeIcon(r.type)}</span>
+                  <div style="min-width:0;">
+                    <div class="hds-r-name">${r.name}</div>
+                    <div class="hds-r-meta">${r.type === 'aerial' ? 'Aerial Drone' : (r.type === 'amphibious' ? 'Amphibious Pod' : 'Ground Scout')} &bull; BATT ${r.battery}%</div>
+                  </div>
+                </div>
+                <button class="hds-deploy-single-btn" data-action="quick-deploy-single" data-rover="${r.id}" data-hazard="${h.id}" title="Deploy ${r.name} to ${h.name}">
+                  Deploy &rarr;
+                </button>
+              </div>
+            `).join('') : `
+              <div class="hds-empty-notice">All active units are currently deployed on missions.</div>
+            `}
+          </div>
+
+          <div class="hds-footer-btns">
+            <button class="deploy-btn" data-action="open-deploy" data-id="${h.id}" ${availableRovers.length === 0 ? 'disabled' : ''}>
+              ${availableRovers.length === 0 ? 'No Units Available' : 'Multi-Unit Deployment Modal'}
+            </button>
+          </div>
+        </div>
       </div>` : ``}
     </div>`;
   }).join('') || `<p style="font-size:11.5px;color:var(--text-3);padding:10px 2px;">No active hazards detected.</p>`;
@@ -278,7 +536,7 @@ function renderDeployModal() {
       <span class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3"><path d="M4 12l5 5L20 6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
       <span class="rover-type-icon">${typeIcon(r.type)}</span>
       <span class="dr-name">${r.name}</span>
-      <span class="dr-meta">BATT ${r.battery}%</span>
+      <span class="dr-meta">${r.type === 'aerial' ? 'Aerial Drone' : (r.type === 'amphibious' ? 'Amphibious' : 'Ground Scout')} &middot; BATT ${r.battery}%</span>
     </div>`;
   }).join('') || `<p style="font-size:11.5px;color:var(--text-3);padding:10px 2px;">No rovers currently available for deployment.</p>`;
 
@@ -287,20 +545,20 @@ function renderDeployModal() {
   <div class="modal-overlay show" id="modalOverlay" data-action="overlay-close">
     <div class="modal" data-stop="1">
       <div class="modal-header">
-        <div class="mh-title">Deploy Scout Rovers</div>
+        <div class="mh-title">Deploy Scout Rovers &amp; Drones</div>
         <div class="mh-sub">Target: ${h.name} &middot; ${h.type} &middot; ${h.severity.toUpperCase()} severity</div>
       </div>
       <div class="modal-body">
-        <div style="display:flex;align-items:center;margin-bottom:8px;">
-          <span style="font-size:10.5px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.4px;font-weight:700;">Available Rovers</span>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <span style="font-size:10.5px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.4px;font-weight:700;">Available Units (${available.length})</span>
           <button class="link-all" data-action="deploy-all">Select All Available</button>
         </div>
         ${rows}
-        ${count > 0 ? `<div class="confirm-summary">Assigning <b>${count}</b> rover${count > 1 ? 's' : ''} to <b>${h.name}</b>. Routes will be calculated from staging positions to target site.</div>` : ``}
+        ${count > 0 ? `<div class="confirm-summary">Assigning <b>${count}</b> unit${count > 1 ? 's' : ''} to <b>${h.name}</b>. Flight routes will be calculated from staging positions to target site.</div>` : ``}
       </div>
       <div class="modal-footer">
         <button class="btn" data-action="close-deploy">Cancel</button>
-        <button class="btn btn-primary" style="margin-left:auto;" data-action="confirm-deploy" ${count === 0 ? 'disabled' : ''}>Confirm Deployment</button>
+        <button class="btn btn-primary" style="margin-left:auto;" data-action="confirm-deploy" ${count === 0 ? 'disabled' : ''}>Confirm Deployment (${count})</button>
       </div>
     </div>
   </div>`;

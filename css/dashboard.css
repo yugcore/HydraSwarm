@@ -899,6 +899,113 @@ input {
   gap: 6px;
 }
 
+/* Hazard Inline Deployment Section */
+.hazard-deploy-section {
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.hds-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 7px;
+}
+
+.hds-title {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-2);
+}
+
+.hds-link-all {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.hds-link-all:hover {
+  text-decoration: underline;
+}
+
+.hds-rovers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 9px;
+}
+
+.hds-rover-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-s);
+  transition: all 0.15s ease;
+}
+
+.hds-rover-row:hover {
+  border-color: var(--border-card);
+  background: var(--bg-panel);
+}
+
+.hds-rover-info {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  flex: 1;
+}
+
+.hds-r-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-0);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hds-r-meta {
+  font-size: 9.5px;
+  color: var(--text-3);
+}
+
+.hds-deploy-single-btn {
+  padding: 3px 8px !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  background: var(--accent-cyan) !important;
+  color: #0b0f17 !important;
+  border: none !important;
+  border-radius: var(--radius-pill) !important;
+  cursor: pointer !important;
+  flex: none !important;
+  transition: all 0.15s ease !important;
+}
+
+.hds-deploy-single-btn:hover {
+  background: #38bdf8 !important;
+}
+
+.hds-empty-notice {
+  font-size: 10px;
+  color: var(--text-3);
+  padding: 6px 4px;
+}
+
+.hds-footer-btns {
+  display: flex;
+  gap: 6px;
+}
+
 /* =========================================================
    CENTER / BENTO MAP & VIEWPORT
 ========================================================= */
@@ -3048,6 +3155,542 @@ svg.map-svg {
   padding: 2px 6px;
   border-radius: 4px;
   text-transform: uppercase;
+}
+
+/* =========================================================
+   REINFORCEMENT SUPPLY & HEAVY AIRLIFT STYLING
+========================================================= */
+
+/* Left Panel Tabs Bar - 100% Width 2-Column Grid */
+.left-panel-tab-bar {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  background: var(--bg-panel);
+  padding: 3px;
+  border-radius: var(--radius-m);
+  border: 1px solid var(--border-card);
+  box-sizing: border-box;
+}
+
+.panel-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: var(--radius-s);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.panel-tab-btn:hover {
+  color: var(--text-0);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.panel-tab-btn.active {
+  background: var(--bg-card);
+  color: var(--text-0);
+  border-color: var(--border-card);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.panel-tab-btn.active svg {
+  stroke: var(--accent-cyan);
+}
+
+.tab-badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-3);
+}
+
+.panel-tab-btn.active .tab-badge {
+  background: var(--accent-cyan);
+  color: #0b0f17;
+}
+
+.col-header-tabs {
+  padding: 8px 12px 6px;
+}
+
+/* Scout Fleet Action Bar & Connect WiFi Rover Button */
+.scout-action-bar {
+  padding: 2px 12px 8px;
+}
+
+.scout-connect-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: var(--bg-panel);
+  border: 1px dashed var(--border-card);
+  border-radius: var(--radius-s);
+  color: var(--text-1);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
+}
+
+.scout-connect-btn:hover {
+  background: var(--bg-card);
+  border-color: var(--accent-cyan);
+  color: var(--text-0);
+}
+
+.scout-connect-btn svg {
+  color: var(--accent-cyan);
+  flex: none;
+}
+
+.wifi-sub-hint {
+  font-size: 9.5px;
+  font-weight: 500;
+  color: var(--text-3);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.wifi-pill-count {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--accent-emerald);
+  background: rgba(16, 185, 129, 0.15);
+  padding: 1px 5px;
+  border-radius: 10px;
+}
+
+/* Reinforcement Filter Pills - 4 Equal Columns (No Overflow) */
+.reinforce-filter-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  padding: 0 12px 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.rf-pill {
+  padding: 4px 2px;
+  font-size: 10px;
+  font-weight: 600;
+  text-align: center;
+  border-radius: var(--radius-s);
+  background: var(--bg-panel);
+  color: var(--text-3);
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.rf-pill:hover {
+  color: var(--text-1);
+  border-color: var(--border-card);
+}
+
+.rf-pill.active {
+  background: var(--bg-card);
+  color: var(--text-0);
+  border-color: var(--accent-cyan);
+  font-weight: 700;
+}
+
+/* Action Banner Card - Clean & Tactile */
+.reinforce-action-card {
+  margin: 2px 12px 8px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-m);
+  padding: 8px 10px;
+  transition: all 0.18s ease;
+}
+
+.reinforce-action-card.drop-active {
+  border-color: var(--accent-red);
+  background: rgba(244, 63, 94, 0.06);
+}
+
+.rac-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.rac-title-group {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.rac-icon {
+  font-size: 14px;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-s);
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.rac-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-0);
+}
+
+.rac-sub {
+  font-size: 10px;
+  color: var(--text-3);
+  line-height: 1.25;
+}
+
+.rac-btns {
+  display: flex;
+  gap: 5px;
+}
+
+.rac-arm-btn {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-card) !important;
+  color: var(--text-1) !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  padding: 4px 7px !important;
+}
+
+.rac-arm-btn:hover {
+  color: var(--text-0) !important;
+  border-color: var(--border-hover) !important;
+}
+
+/* Heavy Rover Cards - Sleek Uniform Border (No Colored Side Lines) */
+.heavy-rover-card {
+  border: 1px solid var(--border-card);
+}
+
+.heavy-rover-card.selected {
+  border-color: var(--accent-cyan);
+}
+
+.heavy-rover-card .rover-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-0);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 155px;
+}
+
+.heavylift-icon {
+  color: var(--text-2);
+}
+
+.cap-tag {
+  font-size: 9.5px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-2);
+  font-weight: 600;
+}
+
+.badge-unloaded {
+  color: var(--text-3);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+/* Cargo Bay Loaded Visualizer */
+.cargo-bay-loaded {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-s);
+  padding: 6px 8px;
+  margin: 6px 0 7px;
+}
+
+.cbl-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 2px;
+}
+
+.cbl-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-1);
+  flex: none;
+}
+
+.cbl-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-0);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cbl-meta {
+  font-size: 9.5px;
+  color: var(--text-3);
+}
+
+.cbl-desc {
+  font-size: 10px;
+  color: var(--text-2);
+  line-height: 1.3;
+}
+
+.cbl-unload-btn {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-3);
+  font-size: 9.5px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cbl-unload-btn:hover {
+  color: var(--accent-red);
+  border-color: var(--accent-red);
+}
+
+/* Cargo Bay Empty State */
+.cargo-bay-empty {
+  background: var(--bg-panel);
+  border: 1px dashed var(--border-card);
+  border-radius: var(--radius-s);
+  padding: 6px 8px;
+  margin: 6px 0 7px;
+}
+
+.cbe-title {
+  font-size: 10px;
+  color: var(--text-3);
+  margin-bottom: 5px;
+}
+
+.cbe-controls {
+  display: flex;
+  gap: 4px;
+}
+
+.payload-select {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-s);
+  color: var(--text-1);
+  font-size: 10px;
+  padding: 3px 5px;
+  outline: none;
+}
+
+.quick-payload-pills {
+  display: flex;
+  gap: 4px;
+  margin-top: 5px;
+}
+
+.q-pill {
+  font-size: 9px;
+  padding: 2px 5px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-3);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.q-pill:hover {
+  color: var(--text-0);
+  border-color: var(--border-card);
+}
+
+.heavy-dispatch-btn {
+  background: var(--accent-cyan) !important;
+  color: #0b0f17 !important;
+  font-weight: 700 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.heavy-dispatch-btn:hover {
+  background: #38bdf8 !important;
+}
+
+/* Regional Inventory Card */
+.reinforce-inventory-card {
+  margin: 8px 12px 6px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-m);
+  padding: 8px 10px;
+}
+
+.ric-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.ric-title {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-2);
+}
+
+.ric-badge {
+  font-size: 8.5px;
+  font-weight: 600;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-3);
+}
+
+.ric-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+}
+
+.ric-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9.5px;
+  color: var(--text-2);
+  background: var(--bg-card);
+  padding: 3px 5px;
+  border-radius: 3px;
+  border: 1px solid var(--border-subtle);
+}
+
+.ric-item b {
+  color: var(--text-0);
+}
+
+.ric-icon {
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-3);
+}
+
+/* Map Drop Targeting Banner Overlay */
+.map-drop-banner {
+  position: absolute;
+  top: 48px;
+  left: 14px;
+  right: 14px;
+  background: rgba(15, 23, 42, 0.95);
+  color: var(--text-0);
+  border: 1px solid var(--border-card);
+  padding: 8px 14px;
+  border-radius: var(--radius-m);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+  z-index: 50;
+  backdrop-filter: blur(8px);
+  animation: slide-down 0.25s ease-out;
+}
+
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.mdb-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.mdb-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  animation: pulse 1.2s infinite alternate;
+}
+
+.mdb-close-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: var(--text-1);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.mdb-close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: var(--text-0);
+}
+
+.map-drop-cursor {
+  cursor: crosshair !important;
+}
+
+/* Dedicated Drop Target HUD */
+.target-hud-drop {
+  border-color: var(--border-card) !important;
+  background: rgba(18, 22, 34, 0.94) !important;
+}
+
+.target-btn-drop {
+  border-color: var(--border-card) !important;
+  color: var(--text-2) !important;
+}
+
+.target-btn-drop.active {
+  background: var(--accent-cyan) !important;
+  color: #0b0f17 !important;
 }
 
 

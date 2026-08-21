@@ -226,26 +226,102 @@ const HYDRA_MAP_INTERACTIONS = {
 };
 
 function getActiveTargets() {
+  const targets = [];
   const deployedHazardIds = new Set();
-  rovers.forEach(r => {
-    if ((r.status === 'Deployed' || r.status === 'On Site') && r.hazardId) {
-      deployedHazardIds.add(r.hazardId);
-    }
+  
+  if (typeof rovers !== 'undefined') {
+    rovers.forEach(r => {
+      if ((r.status === 'Deployed' || r.status === 'On Site') && r.hazardId) {
+        deployedHazardIds.add(r.hazardId);
+      }
+    });
+  }
+
+  deployedHazardIds.forEach(id => {
+    const h = byId(hazards, id);
+    if (h) targets.push({ ...h, targetType: 'hazard' });
   });
 
-  return Array.from(deployedHazardIds).map(id => byId(hazards, id)).filter(Boolean);
+  // Also include active heavy airdrop missions
+  if (typeof activeDropTargets !== 'undefined') {
+    activeDropTargets.forEach(dt => {
+      if (dt.status === 'enroute' || dt.status === 'delivered') {
+        targets.push({
+          id: dt.id,
+          name: `${dt.payloadName || 'Medikit Drop'} — ${dt.label}`,
+          type: 'Airdrop Supply',
+          severity: 'reinforcement',
+          x: dt.x,
+          y: dt.y,
+          status: dt.status === 'delivered' ? 'Delivered' : 'En Route',
+          roverId: dt.roverId,
+          targetType: 'drop'
+        });
+      }
+    });
+  }
+
+  return targets;
 }
 
 /* ---------- TARGET BOUNDING BOX & VIEWBOX CALCULATOR ---------- */
-function getTargetEnvelope(hazardId) {
-  if (!hazardId || hazardId === 'ALL') {
+function getTargetEnvelope(targetId) {
+  if (!targetId || targetId === 'ALL') {
     return { x: 0, y: 0, w: 1000, h: 640 };
   }
 
-  const h = byId(hazards, hazardId);
+  // Check if target is an Airdrop Target
+  if (typeof targetId === 'string' && targetId.startsWith('DROP-')) {
+    const dt = (typeof activeDropTargets !== 'undefined') ? activeDropTargets.find(d => d.id === targetId) : null;
+    if (dt) {
+      const hr = (typeof heavyRovers !== 'undefined') ? heavyRovers.find(r => r.id === dt.roverId) : null;
+      const pts = [{ x: dt.x, y: dt.y }];
+      if (hr) {
+        const telem = HYDRA_TELEMETRY.getRoverTelemetry(hr.id);
+        if (telem) pts.push({ x: telem.x, y: telem.y });
+        if (hr.home) pts.push({ x: hr.home.x, y: hr.home.y });
+      }
+
+      let minX = Math.min(...pts.map(p => p.x));
+      let maxX = Math.max(...pts.map(p => p.x));
+      let minY = Math.min(...pts.map(p => p.y));
+      let maxY = Math.max(...pts.map(p => p.y));
+
+      const padX = 80;
+      const padY = 70;
+      minX = Math.max(0, minX - padX);
+      maxX = Math.min(1000, maxX + padX);
+      minY = Math.max(0, minY - padY);
+      maxY = Math.min(640, maxY + padY);
+
+      let w = Math.max(300, maxX - minX);
+      let h_box = Math.max(200, maxY - minY);
+      const targetAspect = 1000 / 640;
+      const currentAspect = w / h_box;
+
+      if (currentAspect < targetAspect) {
+        const newW = h_box * targetAspect;
+        minX = Math.max(0, minX - (newW - w) / 2);
+        w = newW;
+      } else {
+        const newH = w / targetAspect;
+        minY = Math.max(0, minY - (newH - h_box) / 2);
+        h_box = newH;
+      }
+
+      return {
+        x: Math.round(Math.max(0, Math.min(1000 - w, minX))),
+        y: Math.round(Math.max(0, Math.min(640 - h_box, minY))),
+        w: Math.round(w),
+        h: Math.round(h_box)
+      };
+    }
+  }
+
+  const h = byId(hazards, targetId);
   if (!h) return { x: 0, y: 0, w: 1000, h: 640 };
 
-  const assignedRovers = rovers.filter(r => r.hazardId === hazardId);
+  const assignedRovers = rovers.filter(r => r.hazardId === targetId);
   const pts = [{ x: h.x, y: h.y }];
 
   assignedRovers.forEach(r => {
@@ -350,10 +426,12 @@ function renderMapViewSelector() {
 
   const targetBtns = activeTargets.map((h, idx) => {
     const isFocused = currentMode === h.id;
-    const assignedCount = rovers.filter(r => r.hazardId === h.id).length;
-    const label = activeTargets.length === 1 ? `TARGET: ${h.name.split(' — ')[0].split(',')[0]}` : `TARGET ${idx + 1}: ${h.name.split(' — ')[0].split(',')[0]}`;
+    const isDrop = h.targetType === 'drop';
+    const assignedCount = isDrop ? 1 : rovers.filter(r => r.hazardId === h.id).length;
+    const label = isDrop ? `DROP: ${h.name.split(' — ')[0]}` : (activeTargets.length === 1 ? `TARGET: ${h.name.split(' — ')[0].split(',')[0]}` : `TARGET ${idx + 1}: ${h.name.split(' — ')[0].split(',')[0]}`);
+    
     return `
-    <button class="map-view-btn target-btn ${isFocused ? 'active' : ''}" data-action="set-map-view" data-target="${h.id}">
+    <button class="map-view-btn target-btn ${isFocused ? 'active' : ''} ${isDrop ? 'target-btn-drop' : ''}" data-action="set-map-view" data-target="${h.id}">
       <span class="target-dot"></span>${label}
       <span class="rover-cnt">${assignedCount} unit${assignedCount > 1 ? 's' : ''}</span>
     </button>`;
@@ -366,6 +444,49 @@ function renderMapViewSelector() {
 function renderTargetHudOverlay() {
   if (!state.activeTargetId || state.activeTargetId === 'ALL') return '';
 
+  // 1. Heavy Airlift Drop Mission HUD
+  if (typeof state.activeTargetId === 'string' && state.activeTargetId.startsWith('DROP-')) {
+    const dt = (typeof activeDropTargets !== 'undefined') ? activeDropTargets.find(d => d.id === state.activeTargetId) : null;
+    if (!dt) return '';
+    const hr = (typeof heavyRovers !== 'undefined') ? heavyRovers.find(r => r.id === dt.roverId) : null;
+    const telem = hr ? HYDRA_TELEMETRY.getRoverTelemetry(hr.id) : null;
+    const etaText = telem ? HYDRA_TELEMETRY.formatEta(telem.etaSeconds) : '—';
+    const progressPct = telem ? Math.round(telem.t * 100) : (dt.status === 'delivered' ? 100 : 0);
+
+    return `
+    <div class="target-hud-overlay target-hud-drop">
+      <div class="target-hud-header">
+        <div class="target-hud-title">${dt.payloadName || 'Relief Supplies'} &mdash; AIRDROP MISSION</div>
+        <div class="target-hud-sub">
+          <span class="target-hud-badge sev-moderate">REINFORCEMENT CORRIDOR</span>
+          <span class="target-hud-source">${dt.label}</span>
+        </div>
+      </div>
+      <div class="target-hud-grid">
+        <div class="target-hud-item">
+          <span class="target-hud-label">Assigned Airframe</span>
+          <span class="target-hud-val" style="color:var(--accent-cyan);font-weight:700;">${hr ? hr.name : 'Heavy Lifter'} (${hr ? hr.capacity : 'Heavy'})</span>
+        </div>
+        <div class="target-hud-item">
+          <span class="target-hud-label">Airdrop ETA</span>
+          <span class="target-hud-val" style="color:var(--accent-amber);font-weight:700;">${dt.status === 'delivered' ? 'DELIVERED' : etaText}</span>
+        </div>
+        <div class="target-hud-item">
+          <span class="target-hud-label">Cruise Speed</span>
+          <span class="target-hud-val">${telem ? telem.speed.toFixed(1) : '78'} km/h &middot; 120m AGL</span>
+        </div>
+        <div class="target-hud-item">
+          <span class="target-hud-label">Remaining Dist</span>
+          <span class="target-hud-val">${telem ? `${telem.remainingDistance.toFixed(1)} / ${telem.totalDistance.toFixed(1)} km` : '0 km'}</span>
+        </div>
+      </div>
+      <div class="target-hud-progress">
+        <div class="target-hud-progress-fill" style="width:${progressPct}%;background:linear-gradient(90deg, var(--accent-cyan), var(--accent-amber));"></div>
+      </div>
+    </div>`;
+  }
+
+  // 2. Scout Fleet Incident Target HUD
   const h = byId(hazards, state.activeTargetId);
   if (!h) return '';
 
@@ -428,145 +549,97 @@ function renderMapSvg() {
 
   // Tactical Colors & Shading
   const mapBgStart = isLight ? '#f4f6f9' : '#0b0f17';
-  const mapBgEnd = isLight ? '#e2e8f0' : '#05070a';
-  
-  const waterGradStart = isLight ? '#38bdf8' : '#0284c7';
-  const waterGradEnd = isLight ? '#0284c7' : '#082f49';
-  const waterStroke = isLight ? '#0284c7' : '#38bdf8';
-  const waterShoreGlow = isLight ? 'rgba(56, 189, 248, 0.5)' : 'rgba(56, 189, 248, 0.25)';
+  const mapBgEnd = isLight ? '#e9edf4' : '#111726';
+  const waterGradStart = isLight ? '#bae6fd' : '#0284c7';
+  const waterGradEnd = isLight ? '#e0f2fe' : '#0369a1';
+  const waterStroke = isLight ? 'rgba(2, 132, 199, 0.45)' : 'rgba(56, 189, 248, 0.55)';
+  const waterShoreGlow = isLight ? 'rgba(56, 189, 248, 0.25)' : 'rgba(56, 189, 248, 0.35)';
+  const gridMinor = isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.035)';
+  const gridMajor = isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.08)';
 
-  const gridMinor = isLight ? 'rgba(100, 116, 139, 0.12)' : 'rgba(56, 189, 248, 0.06)';
-  const gridMajor = isLight ? 'rgba(100, 116, 139, 0.35)' : 'rgba(56, 189, 248, 0.22)';
-  const rulerTextColor = isLight ? '#64748b' : 'rgba(148, 163, 184, 0.6)';
+  // 1. Dynamic terrain contours
+  const terrainPathsSvg = (activeStation.mapFeatures?.terrainContours || []).map((d, i) => `
+    <path class="contour-path" fill="none" stroke="${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.04)'}" stroke-width="1.0" d="${d}"></path>
+  `).join('');
 
-  const terrainStroke = isLight ? 'rgba(100, 116, 139, 0.32)' : 'rgba(148, 163, 184, 0.18)';
-  const depotFill = isLight ? '#ffffff' : '#111726';
-  const depotStroke = isLight ? '#0284c7' : '#38bdf8';
-  const depotTextColor = isLight ? '#0f172a' : '#f8fafc';
-
-  // 1. GIS Longitude / Latitude Coordinate Rulers
-  const baseLat = activeStation.lat || 26.14;
-  const baseLon = activeStation.lon || 91.73;
-
-  const topRulers = [120, 260, 400, 540, 680, 820, 940].map(x => {
-    const lonVal = (baseLon + (x - 500) * 0.0006).toFixed(3);
-    return `
-      <g transform="translate(${x}, 0)" opacity="0.65">
-        <line x1="0" y1="0" x2="0" y2="7" stroke="${gridMajor}" stroke-width="1"/>
-        <text x="3" y="10" font-size="7px" font-family="var(--mono)" fill="${rulerTextColor}">${lonVal}°E</text>
-      </g>
-    `;
-  }).join('');
-
-  const leftRulers = [80, 180, 290, 400, 510, 610].map(y => {
-    const latVal = (baseLat + (320 - y) * 0.0006).toFixed(3);
-    return `
-      <g transform="translate(0, ${y})" opacity="0.65">
-        <line x1="0" y1="0" x2="7" y2="0" stroke="${gridMajor}" stroke-width="1"/>
-        <text x="9" y="3" font-size="7px" font-family="var(--mono)" fill="${rulerTextColor}">${latVal}°N</text>
-      </g>
-    `;
-  }).join('');
-
-  // 2. Tactical Radar Range Rings from Station HQ
-  const primaryDepot = activeStation.depots?.[0] || { x: 160, y: 540, name: 'Command HQ' };
+  // 2. Base Station Radar Rings
+  const basePos = activeStation.depots?.[0] || { x: 180, y: 520 };
   const radarRangeRingsSvg = `
-    <g class="radar-group" opacity="${isLight ? '0.5' : '0.4'}">
-      <line x1="${primaryDepot.x - 380}" y1="${primaryDepot.y}" x2="${primaryDepot.x + 380}" y2="${primaryDepot.y}" stroke="${gridMajor}" stroke-width="0.8" stroke-dasharray="3 5"/>
-      <line x1="${primaryDepot.x}" y1="${primaryDepot.y - 380}" x2="${primaryDepot.x}" y2="${primaryDepot.y + 380}" stroke="${gridMajor}" stroke-width="0.8" stroke-dasharray="3 5"/>
-      
-      <circle cx="${primaryDepot.x}" cy="${primaryDepot.y}" r="110" fill="none" stroke="${gridMajor}" stroke-width="0.8" stroke-dasharray="4 4"/>
-      <text x="${primaryDepot.x + 114}" y="${primaryDepot.y - 3}" font-size="6.8px" font-family="var(--mono)" fill="${rulerTextColor}">5 KM RADAR</text>
-
-      <circle cx="${primaryDepot.x}" cy="${primaryDepot.y}" r="220" fill="none" stroke="${gridMajor}" stroke-width="0.8" stroke-dasharray="4 4"/>
-      <text x="${primaryDepot.x + 224}" y="${primaryDepot.y - 3}" font-size="6.8px" font-family="var(--mono)" fill="${rulerTextColor}">10 KM RADAR</text>
-
-      <circle cx="${primaryDepot.x}" cy="${primaryDepot.y}" r="330" fill="none" stroke="${gridMajor}" stroke-width="0.8" stroke-dasharray="4 4"/>
-      <text x="${primaryDepot.x + 334}" y="${primaryDepot.y - 3}" font-size="6.8px" font-family="var(--mono)" fill="${rulerTextColor}">15 KM RADAR</text>
+    <g class="radar-range-rings" opacity="0.6">
+      <circle cx="${basePos.x}" cy="${basePos.y}" r="80" fill="none" stroke="var(--accent-cyan)" stroke-width="0.8" stroke-dasharray="3 3" opacity="0.35"/>
+      <circle cx="${basePos.x}" cy="${basePos.y}" r="160" fill="none" stroke="var(--accent-cyan)" stroke-width="0.8" stroke-dasharray="4 4" opacity="0.25"/>
+      <circle cx="${basePos.x}" cy="${basePos.y}" r="240" fill="none" stroke="var(--accent-cyan)" stroke-width="0.8" stroke-dasharray="5 5" opacity="0.15"/>
+      <line x1="${basePos.x - 250}" y1="${basePos.y}" x2="${basePos.x + 250}" y2="${basePos.y}" stroke="var(--accent-cyan)" stroke-width="0.5" opacity="0.2"/>
+      <line x1="${basePos.x}" y1="${basePos.y - 250}" x2="${basePos.x}" y2="${basePos.y + 250}" stroke="var(--accent-cyan)" stroke-width="0.5" opacity="0.2"/>
     </g>
   `;
 
-  // 3. Topographic Contours with Altitude Stamps
-  const altitudes = ['+80m', '+160m', '+240m', '+360m', '+480m', '+650m', '+920m', '+1400m'];
-  const terrainPathsSvg = (activeStation.mapFeatures?.terrainPaths || []).map((d, idx) => {
-    return `
-      <g class="terrain-group">
-        <path class="terrain-line" stroke="${terrainStroke}" stroke-width="${idx % 2 === 0 ? '1.3' : '0.8'}" stroke-dasharray="${idx % 2 === 0 ? 'none' : '4 3'}" d="${d}"></path>
-      </g>
-    `;
-  }).join('');
-
-  // 4. Landmarks with Clean Cartographic Labels
-  const landmarksSvg = (activeStation.mapFeatures?.landmarks || []).map(lm => {
-    let iconSvg = `<circle r="3" fill="var(--accent-cyan)"/>`;
-    if (lm.icon === 'hill' || lm.icon === 'peak' || lm.icon === 'slide') {
-      iconSvg = `<polygon points="0,-5 4,3 -4,3" fill="var(--accent-amber)"/>`;
-    } else if (lm.icon === 'water' || lm.icon === 'glacier') {
-      iconSvg = `<circle r="3.5" fill="none" stroke="var(--accent-cyan)" stroke-width="1.4"/><circle r="1.5" fill="var(--accent-cyan)"/>`;
-    } else if (lm.icon === 'bridge' || lm.icon === 'dam' || lm.icon === 'canal') {
-      iconSvg = `<rect x="-3.5" y="-2.5" width="7" height="5" rx="1" fill="var(--accent-emerald)"/>`;
-    } else if (lm.icon === 'port' || lm.icon === 'coast') {
-      iconSvg = `<circle r="3" fill="var(--accent-blue)"/>`;
-    }
-
-    return `
-      <g class="map-landmark" transform="translate(${lm.x},${lm.y})">
-        ${iconSvg}
-        <text x="8" y="3" class="marker-label" font-size="8px" font-weight="600" letter-spacing="0.4px">${lm.name.toUpperCase()}</text>
-      </g>
-    `;
-  }).join('');
-
-  // 5. Depots with Command Bunker Symbol
-  const depotsSvg = (activeStation.depots || []).map((dp, idx) => `
-    <g class="map-depot-marker" transform="translate(${dp.x},${dp.y})">
-      <circle r="12" fill="none" stroke="var(--accent-cyan)" stroke-width="0.8" opacity="0.4" stroke-dasharray="3 3"/>
-      <polygon points="0,-9 8,-4.5 8,4.5 0,9 -8,4.5 -8,-4.5" fill="${depotFill}" stroke="${depotStroke}" stroke-width="1.6"/>
-      <circle r="2.8" fill="var(--accent-cyan)"/>
-      <text x="14" y="3.5" class="marker-label" fill="${depotTextColor}" font-size="8.5px" font-weight="700" letter-spacing="0.4px">${(dp.name || 'HQ BASE').toUpperCase()}</text>
+  // 3. Landmarks
+  const landmarksSvg = (activeStation.mapFeatures?.landmarks || []).map(lm => `
+    <g class="landmark-marker" transform="translate(${lm.x},${lm.y})">
+      <circle r="3" fill="var(--text-3)" opacity="0.6"/>
+      <text class="marker-label" x="7" y="3" font-size="8px" fill="var(--text-3)" opacity="0.8">${lm.name}</text>
     </g>
   `).join('');
 
-  // 6. Military Compass Rose (Top-Right)
+  // 4. Depots
+  const depotsSvg = (activeStation.depots || []).map(dp => `
+    <g class="depot-marker" transform="translate(${dp.x},${dp.y})">
+      <rect x="-5" y="-5" width="10" height="10" rx="2" fill="var(--accent-cyan-dim)" stroke="var(--accent-cyan)" stroke-width="1.2"/>
+      <circle cx="0" cy="0" r="1.5" fill="var(--accent-cyan)"/>
+      <text class="marker-label" x="8" y="3" font-size="8px" font-weight="700" fill="var(--accent-cyan)">${dp.name}</text>
+    </g>
+  `).join('');
+
+  // 5. Compass Rose
   const compassRoseSvg = `
-    <g class="compass-rose" transform="translate(940, 52)" opacity="${isLight ? '0.85' : '0.7'}">
-      <circle r="22" fill="none" stroke="${gridMajor}" stroke-width="1.2" stroke-dasharray="2 3"/>
-      <line x1="0" y1="-26" x2="0" y2="26" stroke="${gridMajor}" stroke-width="1"/>
-      <line x1="-26" y1="0" x2="26" y2="0" stroke="${gridMajor}" stroke-width="1"/>
-      <polygon points="0,-22 4,-5 0,-8 -4,-5" fill="var(--accent-rose)"/>
-      <polygon points="0,22 4,5 0,8 -4,5" fill="${rulerTextColor}"/>
-      <text x="0" y="-27" text-anchor="middle" font-size="8px" font-weight="800" font-family="var(--mono)" fill="var(--accent-rose)">N</text>
-      <text x="31" y="2.5" text-anchor="start" font-size="7px" font-weight="700" font-family="var(--mono)" fill="${rulerTextColor}">E</text>
-      <text x="0" y="34" text-anchor="middle" font-size="7px" font-weight="700" font-family="var(--mono)" fill="${rulerTextColor}">S</text>
-      <text x="-31" y="2.5" text-anchor="end" font-size="7px" font-weight="700" font-family="var(--mono)" fill="${rulerTextColor}">W</text>
+    <g class="compass-rose" transform="translate(940, 60)" opacity="0.75">
+      <circle r="18" fill="${markerInnerFill}" stroke="var(--border-card)" stroke-width="1.2"/>
+      <polygon points="0,-14 4,0 0,-4 -4,0" fill="var(--accent-red)"/>
+      <polygon points="0,14 4,0 0,4 -4,0" fill="var(--text-3)"/>
+      <text x="0" y="-17" text-anchor="middle" font-size="8px" font-weight="800" fill="var(--accent-red)">N</text>
     </g>
   `;
 
-  // 7. Tactical Scale Bar (Bottom-Left)
+  // 6. Scale Bar
   const scaleBarSvg = `
-    <g class="scale-bar" transform="translate(40, 615)" opacity="${isLight ? '0.85' : '0.7'}">
-      <rect x="0" y="0" width="120" height="4" fill="none" stroke="${depotStroke}" stroke-width="1"/>
-      <rect x="0" y="0" width="60" height="4" fill="${depotStroke}"/>
-      <text x="0" y="-4" font-size="7px" font-family="var(--mono)" font-weight="700" fill="${rulerTextColor}">0</text>
-      <text x="60" y="-4" text-anchor="middle" font-size="7px" font-family="var(--mono)" font-weight="700" fill="${rulerTextColor}">2.5 KM</text>
-      <text x="120" y="-4" text-anchor="end" font-size="7px" font-family="var(--mono)" font-weight="700" fill="${rulerTextColor}">5.0 KM</text>
-      <text x="135" y="4" font-size="7px" font-family="var(--mono)" font-weight="600" fill="${rulerTextColor}">[SCALE 1:50,000 // WGS-84 GIS]</text>
+    <g class="scale-bar" transform="translate(40, 600)" opacity="0.8">
+      <line x1="0" y1="0" x2="60" y2="0" stroke="var(--text-2)" stroke-width="2"/>
+      <line x1="0" y1="-3" x2="0" y2="3" stroke="var(--text-2)" stroke-width="1.5"/>
+      <line x1="60" y1="-3" x2="60" y2="3" stroke="var(--text-2)" stroke-width="1.5"/>
+      <text x="30" y="-5" text-anchor="middle" font-size="8px" font-family="var(--mono)" fill="var(--text-2)">3 KM</text>
     </g>
   `;
 
-  // 8. Hazard Markers with Clean Text Labels
+  // 7. Coordinate Rulers
+  const topRulers = [100, 250, 400, 550, 700, 850].map(x => `
+    <g transform="translate(${x}, 12)" opacity="0.4">
+      <line x1="0" y1="0" x2="0" y2="4" stroke="var(--text-3)" stroke-width="0.8"/>
+      <text x="0" y="-2" text-anchor="middle" font-size="7px" font-family="var(--mono)" fill="var(--text-3)">${(91.5 + x * 0.002).toFixed(2)}°E</text>
+    </g>
+  `).join('');
+
+  const leftRulers = [100, 220, 340, 460, 580].map(y => `
+    <g transform="translate(12, ${y})" opacity="0.4">
+      <line x1="0" y1="0" x2="4" y2="0" stroke="var(--text-3)" stroke-width="0.8"/>
+      <text x="6" y="3" font-size="7px" font-family="var(--mono)" fill="var(--text-3)">${(26.4 - y * 0.0015).toFixed(2)}°N</text>
+    </g>
+  `).join('');
+
+  // 8. Hazard Markers
   const hazardMarkers = hazards.map(h => {
     const isSelected = state.selectedHazardId === h.id;
     const isTarget = isTargetFocused && focusedHazardId === h.id;
     const isDimmed = isTargetFocused && !isTarget;
-    const sevColor = h.severity === 'severe' ? '#f43f5e' : h.severity === 'moderate' ? '#f59e0b' : '#0ea5e9';
+    const glowFill = h.severity === 'severe' ? 'url(#hazardGlowSevere)' : (h.severity === 'moderate' ? 'url(#hazardGlowModerate)' : 'none');
 
     return `
-    <g class="marker marker-hazard ${isDimmed ? 'dimmed' : ''}" style="${isDimmed ? 'opacity:0.2;' : ''}" data-action="select-hazard" data-id="${h.id}" transform="translate(${h.x},${h.y})">
-      <circle class="pulse" r="${isTarget ? 15 : 10}" fill="${sevColor}"></circle>
-      <circle r="${isTarget ? 10 : 8}" fill="${markerInnerFill}" stroke="${sevColor}" stroke-width="${isTarget ? 3.2 : isSelected ? 2.8 : 2.0}"></circle>
-      <g transform="translate(-5,-5) scale(0.46)" stroke="${sevColor}" fill="none" stroke-width="1.9">${hazardIcons[h.type] || ''}</g>
-      ${!isDimmed ? `
+    <g class="marker hazard-marker ${isSelected ? 'selected' : ''} ${isTarget ? 'target-focused' : ''}" style="${isDimmed ? 'opacity:0.25;' : ''}" data-action="select-hazard" data-id="${h.id}" transform="translate(${h.x},${h.y})">
+      ${glowFill !== 'none' ? `<circle r="42" fill="${glowFill}"/>` : ''}
+      <circle class="pulse" r="14" fill="none" stroke="var(--accent-${h.severity === 'severe' ? 'red' : h.severity === 'moderate' ? 'amber' : 'teal'})" stroke-width="1.8"/>
+      <circle r="7" fill="${markerInnerFill}" stroke="var(--accent-${h.severity === 'severe' ? 'red' : h.severity === 'moderate' ? 'amber' : 'teal'})" stroke-width="2.2"/>
+      <circle r="2.8" fill="var(--accent-${h.severity === 'severe' ? 'red' : h.severity === 'moderate' ? 'amber' : 'teal'})"/>
+      ${(!isDimmed || isSelected) ? `
         <text class="marker-label" x="${isTarget ? 16 : 13}" y="3.5" font-size="9px" font-weight="${isTarget ? '700' : '600'}">${h.name.split(' — ')[0].split(',')[0]}</text>
       ` : ''}
       ${isTarget ? `<circle r="38" fill="none" stroke="var(--accent-amber)" stroke-width="1.2" stroke-dasharray="4 4" opacity="0.85"/>` : ''}
@@ -576,8 +649,8 @@ function renderMapSvg() {
   const isLive = state.mode === 'live';
   const activeFleet = isLive ? rovers.filter(r => r.isEsp32) : rovers;
 
-  // 9. Laser Trajectory Routes with Multi-Layer Glow
-  const routes = activeFleet.filter(r => r.hazardId).map(r => {
+  // 9. Scout Fleet Laser Trajectory Routes
+  const scoutRoutes = activeFleet.filter(r => r.hazardId).map(r => {
     const h = byId(hazards, r.hazardId);
     if (!h) return '';
     const telem = HYDRA_TELEMETRY.getRoverTelemetry(r.id);
@@ -594,7 +667,27 @@ function renderMapSvg() {
     </g>`;
   }).join('');
 
-  // 10. Rover markers
+  // 10. Heavy Airlift Reinforcement Flight Corridors
+  const heavyRoutes = (typeof heavyRovers !== 'undefined') ? heavyRovers.filter(hr => hr.status === 'Deployed' || hr.status === 'Returning').map(hr => {
+    const telem = HYDRA_TELEMETRY.getRoverTelemetry(hr.id);
+    if (!telem || !telem.targetPos) return '';
+    const isReturn = telem.returnLeg;
+    const p0 = isReturn ? telem.targetPos : (telem.homePos || hr.home || { x: 130, y: 560 });
+    const p2 = isReturn ? (telem.homePos || hr.home || { x: 130, y: 560 }) : telem.targetPos;
+    const p1 = HYDRA_TELEMETRY.getControlPoint(p0, p2);
+
+    return `
+    <g class="route-group heavy-airlift-corridor">
+      <!-- Broad flight corridor laser channel -->
+      <path d="M ${p0.x} ${p0.y} Q ${p1.x} ${p1.y} ${p2.x} ${p2.y}" fill="none" stroke="var(--accent-amber)" stroke-width="7" opacity="0.12"></path>
+      <!-- Completed flight path -->
+      <path d="M ${p0.x} ${p0.y} Q ${p1.x} ${p1.y} ${telem.x} ${telem.y}" fill="none" stroke="${isReturn ? 'var(--accent-teal)' : 'var(--accent-amber)'}" stroke-width="2.6" stroke-dasharray="6 4" opacity="0.95"></path>
+      <!-- Remaining projection corridor -->
+      <path class="route-path heavy-flight-path" d="M ${telem.x} ${telem.y} Q ${p1.x} ${p1.y} ${p2.x} ${p2.y}" stroke="${isReturn ? 'var(--accent-teal)' : 'var(--accent-cyan)'}" stroke-width="1.8"></path>
+    </g>`;
+  }).join('') : '';
+
+  // 11. Scout Fleet Rover Markers
   const roverMarkers = activeFleet.map(r => {
     const telem = HYDRA_TELEMETRY.getRoverTelemetry(r.id);
     const isSelected = state.selectedRoverId === r.id;
@@ -627,16 +720,93 @@ function renderMapSvg() {
     </g>`;
   }).join('');
 
+  // 12. Heavy-Lifting Air Rovers & Aerial Drones
+  const heavyRoverMarkers = (typeof heavyRovers !== 'undefined') ? heavyRovers.map(hr => {
+    const telem = HYDRA_TELEMETRY.getRoverTelemetry(hr.id);
+    const isSelected = state.selectedHeavyRoverId === hr.id;
+    const isDeployed = hr.status === 'Deployed' || hr.status === 'Returning';
+    const isTarget = isTargetFocused && (focusedHazardId === hr.id || (telem && telem.dropId === focusedHazardId));
+    const posX = isDeployed ? telem.x : hr.x;
+    const posY = isDeployed ? telem.y : hr.y;
+    const heading = telem.heading || 0;
+    const payload = hr.payloadId ? getPayloadById(hr.payloadId) : null;
+
+    return `
+    <g class="marker heavy-rover-marker ${isSelected ? 'selected' : ''} ${isDeployed ? 'deployed' : ''}" data-action="select-heavy-rover" data-id="${hr.id}" transform="translate(${posX},${posY})">
+      <!-- High Altitude Flight Shadow -->
+      ${isDeployed ? `<ellipse cx="8" cy="12" rx="14" ry="7" fill="rgba(0,0,0,0.3)" opacity="0.6"/>` : ''}
+      <!-- Octocopter / VTOL Heavy Frame -->
+      <g transform="rotate(${heading})">
+        <!-- Booms -->
+        <line x1="-12" y1="-12" x2="12" y2="12" stroke="${roverStroke}" stroke-width="1.6"/>
+        <line x1="-12" y1="12" x2="12" y2="-12" stroke="${roverStroke}" stroke-width="1.6"/>
+        <!-- Rotor Rings -->
+        <circle cx="-12" cy="-12" r="4.5" fill="none" stroke="var(--accent-cyan)" stroke-width="1.0" opacity="0.85"/>
+        <circle cx="12" cy="-12" r="4.5" fill="none" stroke="var(--accent-cyan)" stroke-width="1.0" opacity="0.85"/>
+        <circle cx="-12" cy="12" r="4.5" fill="none" stroke="var(--accent-cyan)" stroke-width="1.0" opacity="0.85"/>
+        <circle cx="12" cy="12" r="4.5" fill="none" stroke="var(--accent-cyan)" stroke-width="1.0" opacity="0.85"/>
+        <!-- Central Avionics & Cargo Pod -->
+        <rect x="-7" y="-8" width="14" height="16" rx="2.5" fill="${roverFill}" stroke="${isDeployed ? 'var(--accent-amber)' : roverStroke}" stroke-width="1.6"/>
+        <!-- Attached Medical/Relief Cargo Box -->
+        ${hr.payloadStatus === 'loaded' ? `
+          <rect x="-4.5" y="-4" width="9" height="8" rx="1.2" fill="var(--accent-amber)" stroke="#ffffff" stroke-width="0.8"/>
+          <path d="M-1.5,-4 v8 M-4.5,0 h9" stroke="#ffffff" stroke-width="0.8"/>
+        ` : ''}
+        <!-- Heading Indicator -->
+        <line x1="0" y1="-8" x2="0" y2="-15" stroke="var(--accent-amber)" stroke-width="2.2" stroke-linecap="round"/>
+      </g>
+      <!-- Label -->
+      <text class="marker-label heavy-label" x="14" y="3.5" font-weight="700">${hr.name}</text>
+      ${isDeployed ? `
+        <text class="marker-label" x="14" y="13" font-size="8px" fill="var(--accent-amber)">${telem.speed.toFixed(0)} km/h &bull; ${payload ? payload.shortName : 'Supplies'}</text>
+      ` : (hr.payloadStatus === 'loaded' ? `
+        <text class="marker-label" x="14" y="13" font-size="7.5px" fill="var(--accent-emerald)">[ARMED] ${payload ? payload.shortName : 'Loaded'}</text>
+      ` : '')}
+    </g>`;
+  }).join('') : '';
+
+  // 13. Airdrop Targets & Delivered Parachute Markers
+  const dropZoneMarkers = (typeof activeDropTargets !== 'undefined') ? activeDropTargets.map(dt => {
+    const isDelivered = dt.status === 'delivered';
+    const isTarget = isTargetFocused && focusedHazardId === dt.id;
+
+    if (isDelivered) {
+      return `
+      <g class="delivered-drop-marker" transform="translate(${dt.x},${dt.y})" data-action="set-map-view" data-target="${dt.id}">
+        <!-- Parachute canopy on ground -->
+        <path d="M -11 -8 C -11 -18 11 -18 11 -8 Z" fill="rgba(16, 185, 129, 0.28)" stroke="var(--accent-emerald)" stroke-width="1.3"/>
+        <line x1="-11" y1="-8" x2="-3" y2="1" stroke="var(--accent-emerald)" stroke-width="0.8" opacity="0.8"/>
+        <line x1="11" y1="-8" x2="3" y2="1" stroke="var(--accent-emerald)" stroke-width="0.8" opacity="0.8"/>
+        <!-- Delivered Crate -->
+        <rect x="-6" y="1" width="12" height="10" rx="1.5" fill="#10b981" stroke="#ffffff" stroke-width="1.2"/>
+        <path d="M0,1 v10 M-6,6 h12" stroke="#ffffff" stroke-width="1.0"/>
+        <text class="marker-label" x="14" y="5" font-size="8.5px" font-weight="700" fill="var(--accent-emerald)">${dt.payloadName || 'SUPPLIES'} [DELIVERED]</text>
+        <text class="marker-label" x="14" y="14" font-size="7.5px" fill="var(--text-3)">ON SITE RELIEF</text>
+      </g>`;
+    } else {
+      return `
+      <g class="drop-target-marker ${isTarget ? 'target-focused' : ''}" transform="translate(${dt.x},${dt.y})" data-action="set-map-view" data-target="${dt.id}">
+        <circle class="pulse" r="18" fill="none" stroke="var(--accent-amber)" stroke-width="1.8"/>
+        <circle r="7" fill="none" stroke="var(--accent-amber)" stroke-width="2.2"/>
+        <line x1="-15" y1="0" x2="15" y2="0" stroke="var(--accent-amber)" stroke-width="1.5"/>
+        <line x1="0" y1="-15" x2="0" y2="15" stroke="var(--accent-amber)" stroke-width="1.5"/>
+        <rect x="-4" y="-4" width="8" height="8" rx="1.5" fill="var(--accent-amber)"/>
+        <text class="marker-label" x="16" y="3.5" font-size="9px" font-weight="700" fill="var(--accent-amber)">DROP ZONE: ${dt.payloadName || 'MEDIKIT'}</text>
+        <text class="marker-label" x="16" y="13" font-size="8px" fill="var(--text-2)">EN ROUTE &bull; ${dt.roverName || 'HEAVY LIFTER'}</text>
+      </g>`;
+    }
+  }).join('') : '';
+
   return `
-  <svg class="map-svg" viewBox="${vb.x} ${vb.y} ${vb.w} ${vb.h}" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Operations map">
+  <svg class="map-svg ${state.dropDesignationActive ? 'map-drop-cursor' : ''}" viewBox="${vb.x} ${vb.y} ${vb.w} ${vb.h}" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Tactical Operations Map">
     <defs>
       <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
         <stop offset="0%" stop-color="${mapBgStart}"/>
         <stop offset="100%" stop-color="${mapBgEnd}"/>
       </linearGradient>
       <linearGradient id="waterGrad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="${waterGradStart}" stop-opacity="${isLight ? '0.35' : '0.45'}"/>
-        <stop offset="100%" stop-color="${waterGradEnd}" stop-opacity="${isLight ? '0.2' : '0.3'}"/>
+        <stop offset="0%" stop-color="${waterGradStart}" stop-opacity="0.45"/>
+        <stop offset="100%" stop-color="${waterGradEnd}" stop-opacity="0.3"/>
       </linearGradient>
       <radialGradient id="hazardGlowSevere" cx="50%" cy="50%" r="50%">
         <stop offset="0%" stop-color="#f43f5e" stop-opacity="0.35"/>
@@ -648,49 +818,38 @@ function renderMapSvg() {
         <stop offset="60%" stop-color="#f59e0b" stop-opacity="0.10"/>
         <stop offset="100%" stop-color="#f59e0b" stop-opacity="0"/>
       </radialGradient>
-      <pattern id="gisMinorGrid" width="60" height="60" patternUnits="userSpaceOnUse">
-        <path d="M 60 0 L 0 0 0 60" fill="none" stroke="${gridMinor}" stroke-width="0.7" stroke-dasharray="2 3"/>
-        <path d="M 0 -2.5 L 0 2.5 M -2.5 0 L 2.5 0" stroke="${gridMajor}" stroke-width="0.8"/>
-      </pattern>
     </defs>
 
     <!-- 1. Background -->
     <rect x="0" y="0" width="1000" height="640" fill="url(#bgGrad)"></rect>
 
-    <!-- 2. Tactical GIS Grid -->
-    <rect x="0" y="0" width="1000" height="640" fill="url(#gisMinorGrid)"></rect>
-
-    <!-- 3. Dynamic Coastline or River Channel with Water Glow -->
-    <path class="coast-fill" fill="url(#waterGrad)" stroke="${waterStroke}" stroke-width="1.8" d="${activeStation.mapFeatures?.coastOrRiverD || 'M0,0 L1000,0 L1000,470 Z'}"></path>
-    <path fill="none" stroke="${waterShoreGlow}" stroke-width="3.5" opacity="0.35" d="${activeStation.mapFeatures?.coastOrRiverD || 'M0,0 L1000,0 L1000,470 Z'}"></path>
-
-    <!-- 4. Station Water Body Banner -->
-    <text x="30" y="32" class="marker-label" font-size="9.5px" font-weight="700" font-family="var(--mono)" fill="var(--accent-cyan)" letter-spacing="1px" opacity="0.75">${(activeStation.mapFeatures?.riverName || activeStation.region).toUpperCase()}</text>
-
-    <!-- 5. Dynamic contour lines with Altitude Stamps -->
+    <!-- 2. Dynamic terrain contours -->
     ${terrainPathsSvg}
 
-    <!-- 6. Radar Range Rings from Base -->
+    <!-- 3. Radar Range Rings -->
     ${radarRangeRingsSvg}
 
-    <!-- 7. Dynamic landmarks -->
+    <!-- 4. Landmarks -->
     ${landmarksSvg}
 
-    <!-- 8. Dynamic depot markers -->
+    <!-- 5. Depots -->
     ${depotsSvg}
 
-    <!-- 9. Compass Rose & Scale Bar -->
+    <!-- 6. Compass & Scale -->
     ${compassRoseSvg}
     ${scaleBarSvg}
 
-    <!-- 10. GIS Coordinate Rulers -->
+    <!-- 7. Coordinates -->
     ${topRulers}
     ${leftRulers}
 
-    <!-- 11. Routes, Hazards, and Rovers -->
-    ${routes}
+    <!-- 8. Routes, Hazards, Rovers, and Heavy Supply Drops -->
+    ${scoutRoutes}
+    ${heavyRoutes}
+    ${dropZoneMarkers}
     ${hazardMarkers}
     ${roverMarkers}
+    ${heavyRoverMarkers}
   </svg>`;
 }
 
@@ -742,13 +901,22 @@ function renderMap() {
     : `${activeStation.shortName} &middot; ${activeStation.region}`;
 
   const zoomPct = Math.round((1000 / Math.max(1, currentViewBox.w)) * 100);
+  const isDropActive = !!state.dropDesignationActive;
 
   return `
-  <div class="map-wrap">
+  <div class="map-wrap ${isDropActive ? 'drop-targeting-active' : ''}">
     <div class="map-toolbar">
       <div class="map-chip"><span class="stat-dot ok"></span>${chipLabel}</div>
       ${renderMapViewSelector()}
     </div>
+    ${isDropActive ? `
+      <div class="map-drop-banner">
+        <div class="mdb-content">
+          <span class="mdb-pulse-dot"></span>
+          <span><b>TARGET DESIGNATION ACTIVE:</b> Click ANY point on the tactical map to dispatch Heavy Airlift Supply Drop</span>
+        </div>
+        <button class="mdb-close-btn" data-action="toggle-drop-designation" title="Exit Drop Mode">&times;</button>
+      </div>` : ''}
     <div class="map-controls">
       <button class="map-ctrl-btn" data-action="map-zoom-in" title="Zoom In (+)">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -766,9 +934,10 @@ function renderMap() {
     ${renderRoverInfoPanel()}
     <div class="map-legend">
       <div class="lg-row"><span class="lg-swatch" style="background:var(--accent-red);"></span>Severe hazard</div>
-      <div class="lg-row"><span class="lg-swatch" style="background:var(--accent-amber);"></span>Moderate hazard</div>
+      <div class="lg-row"><span class="lg-swatch" style="background:var(--accent-amber);"></span>Moderate hazard / Drop</div>
       <div class="lg-row"><span class="lg-swatch" style="background:var(--accent-teal);"></span>Low / advisory</div>
-      <div class="lg-row"><span class="lg-swatch" style="background:var(--accent-blue);border-radius:2px;"></span>Deployment route</div>
+      <div class="lg-row"><span class="lg-swatch" style="background:var(--accent-blue);border-radius:2px;"></span>Scout route</div>
+      <div class="lg-row"><span class="lg-swatch" style="background:var(--accent-emerald);border-radius:2px;"></span>Parachute drop</div>
     </div>
   </div>`;
 }

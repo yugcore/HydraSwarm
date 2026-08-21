@@ -46,6 +46,12 @@ const HYDRA_STATIONS = [
       { id: 'GA-05', name: 'Barak-Drone', type: 'aerial', status: 'Returning', battery: 28, connection: 'weak', task: 'Returning to Dispur HQ — Low Batt', x: 620, y: 430, home: { x: 750, y: 540 } },
       { id: 'GA-06', name: 'Kaziranga-Eye', type: 'aerial', status: 'Ready', battery: 96, connection: 'strong', task: 'Standing by — Thermal Long Range', x: 750, y: 540, home: { x: 750, y: 540 } }
     ],
+    heavyRovers: [
+      { id: 'HL-GA-01', name: 'Garuda-Heavy Lifter 1', type: 'aerial', category: 'heavylift', airframe: 'Heavy Hexacopter SkyCrane', capacity: '120 kg', capacityKg: 120, status: 'Ready', payloadId: 'medikit_trauma', payloadStatus: 'loaded', battery: 96, speedKmH: 78, task: 'Armed & Standing by — Pad 1 Saraighat', baseName: 'Saraighat Staging HQ', x: 130, y: 560, home: { x: 130, y: 560 } },
+      { id: 'HL-GA-02', name: 'Pushpak-VTOL SkyCrane', type: 'aerial', category: 'heavylift', airframe: 'High-Payload VTOL Carrier', capacity: '160 kg', capacityKg: 160, status: 'Ready', payloadId: null, payloadStatus: 'unloaded', battery: 91, speedKmH: 84, task: 'Standing by — Cargo bay empty (Pad 2)', baseName: 'Dispur Base', x: 750, y: 540, home: { x: 750, y: 540 } },
+      { id: 'HL-GA-03', name: 'Airavat-Airlift Drone', type: 'aerial', category: 'heavylift', airframe: 'Twin-Rotor Heavy Lifter', capacity: '95 kg', capacityKg: 95, status: 'Ready', payloadId: 'plasma_coldbox', payloadStatus: 'loaded', battery: 89, speedKmH: 72, task: 'Armed & Standing by — Pad 3 Saraighat', baseName: 'Saraighat Staging HQ', x: 130, y: 560, home: { x: 130, y: 560 } },
+      { id: 'HL-GA-04', name: 'Meghdoot-Cargo Pod', type: 'aerial', category: 'heavylift', airframe: 'Heavy Octocopter Pod', capacity: '140 kg', capacityKg: 140, status: 'Ready', payloadId: null, payloadStatus: 'unloaded', battery: 94, speedKmH: 76, task: 'Standing by — Cargo bay empty (Pad 4)', baseName: 'Dispur Base', x: 750, y: 540, home: { x: 750, y: 540 } }
+    ],
     hazards: [
       { id: 'GH-01', type: 'Flood', name: 'Brahmaputra Sandbar Breach', location: 'Brahmaputra Channel Sector 4', detected: '06:40', severity: 'severe', status: 'Active', source: 'CWC India', x: 520, y: 240 },
       { id: 'GH-02', type: 'Landslide', name: 'Kamakhya South Face Debris Flow', location: 'Nilachal Hills, Kamrup Metro', detected: '07:15', severity: 'severe', status: 'Active', source: 'ASDMA', x: 260, y: 460 },
@@ -95,6 +101,12 @@ const HYDRA_STATIONS = [
       { id: 'CN-04', name: 'Bay-Hexacopter', type: 'aerial', status: 'Ready', battery: 97, connection: 'strong', task: 'Standing by — High Altitude Surge UAV', x: 800, y: 220, home: { x: 800, y: 220 } },
       { id: 'CN-05', name: 'Velachery-Track', type: 'ground', status: 'Returning', battery: 32, connection: 'moderate', task: 'Returning — Low Sump Clearance', x: 440, y: 420, home: { x: 180, y: 550 } }
     ],
+    heavyRovers: [
+      { id: 'HL-CN-01', name: 'Coromandel-SkyCrane', type: 'aerial', category: 'heavylift', airframe: 'Heavy VTOL Carrier', capacity: '150 kg', capacityKg: 150, status: 'Ready', payloadId: 'medikit_trauma', payloadStatus: 'loaded', battery: 95, speedKmH: 82, task: 'Armed & Standing by — Adyar Pad 1', baseName: 'Adyar River Command', x: 180, y: 550, home: { x: 180, y: 550 } },
+      { id: 'HL-CN-02', name: 'Bay-Airlifter 2', type: 'aerial', category: 'heavylift', airframe: 'High-Wind Hexacopter Lifter', capacity: '120 kg', capacityKg: 120, status: 'Ready', payloadId: null, payloadStatus: 'unloaded', battery: 90, speedKmH: 75, task: 'Standing by — Cargo bay empty (Pier Pad)', baseName: 'Chennai Port Marine Pier', x: 800, y: 220, home: { x: 800, y: 220 } },
+      { id: 'HL-CN-03', name: 'Marina-Heavy Pod', type: 'aerial', category: 'heavylift', airframe: 'Octocopter Cargo Carrier', capacity: '130 kg', capacityKg: 130, status: 'Ready', payloadId: 'inflatable_raft', payloadStatus: 'loaded', battery: 88, speedKmH: 70, task: 'Armed & Standing by — Adyar Pad 2', baseName: 'Adyar River Command', x: 180, y: 550, home: { x: 180, y: 550 } }
+    ],
+
     hazards: [
       { id: 'CH-01', type: 'Cyclone', name: 'Bay of Bengal Deep Depression', location: 'Coromandel Coast Approach Corridor', detected: '07:25', severity: 'severe', status: 'Active', source: 'IMD Chennai', x: 740, y: 150 },
       { id: 'CH-02', type: 'Flood', name: 'Adyar River Embankment Inflow', location: 'Adyar South Catchment Basin', detected: '06:10', severity: 'severe', status: 'Active', source: 'NDRF India', x: 380, y: 480 },
@@ -144,6 +156,11 @@ const HYDRA_STATIONS = [
       { id: 'KD-03', name: 'Garhwal-Scout', type: 'ground', status: 'Ready', battery: 95, connection: 'strong', task: 'Standing by — Tethered Steep Slope Bot', x: 160, y: 570, home: { x: 160, y: 570 } },
       { id: 'KD-04', name: 'Chorabari-Eye', type: 'aerial', status: 'Ready', battery: 88, connection: 'strong', task: 'Standing by — Sub-Zero Thermal UAV', x: 500, y: 220, home: { x: 500, y: 220 } }
     ],
+    heavyRovers: [
+      { id: 'HL-KD-01', name: 'Trishul-Heavy VTOL', type: 'aerial', category: 'heavylift', airframe: 'Alpine Sub-Zero VTOL SkyCrane', capacity: '140 kg', capacityKg: 140, status: 'Ready', payloadId: 'medikit_trauma', payloadStatus: 'loaded', battery: 96, speedKmH: 80, task: 'Armed & Standing by — Sonprayag Pad 1', baseName: 'Sonprayag Mountain Depot', x: 160, y: 570, home: { x: 160, y: 570 } },
+      { id: 'HL-KD-02', name: 'Garhwal-SkyCrane', type: 'aerial', category: 'heavylift', airframe: 'High-Altitude Heavy Octocopter', capacity: '160 kg', capacityKg: 160, status: 'Ready', payloadId: 'survival_rations', payloadStatus: 'loaded', battery: 91, speedKmH: 74, task: 'Armed & Standing by — Helipad Pad 2', baseName: 'Kedarnath Helipad', x: 500, y: 220, home: { x: 500, y: 220 } },
+      { id: 'HL-KD-03', name: 'Mandakini-Lifter', type: 'aerial', category: 'heavylift', airframe: 'Twin-Rotor Alpine Carrier', capacity: '100 kg', capacityKg: 100, status: 'Ready', payloadId: null, payloadStatus: 'unloaded', battery: 88, speedKmH: 70, task: 'Standing by — Cargo bay empty (Sonprayag)', baseName: 'Sonprayag Mountain Depot', x: 160, y: 570, home: { x: 160, y: 570 } }
+    ],
     hazards: [
       { id: 'KH-01', type: 'Flood', name: 'Chorabari Moraine Lake GLOF Risk', location: 'Upper Kedarnath Cirque Glacier', detected: '05:30', severity: 'severe', status: 'Active', source: 'WIHG Dehradun', x: 500, y: 130 },
       { id: 'KH-02', type: 'Landslide', name: 'Mandakini Gorge Massive Rockslide', location: 'Rambara-Gaurikund Highway MP 9', detected: '06:50', severity: 'severe', status: 'Active', source: 'USDMA', x: 360, y: 350 },
@@ -188,6 +205,11 @@ const HYDRA_STATIONS = [
       { id: 'OD-02', name: 'Chilika-Hovercraft', type: 'ground', status: 'Deployed', battery: 65, connection: 'strong', task: 'Delta Breach Evacuation Corridor', x: 320, y: 380, home: { x: 220, y: 340 }, hazardId: 'OH-02' },
       { id: 'OD-03', name: 'Kalinga-Surge Bot', type: 'ground', status: 'Ready', battery: 92, connection: 'strong', task: 'Standing by — Sea Wall Reinforcement', x: 720, y: 520, home: { x: 720, y: 520 } },
       { id: 'OD-04', name: 'Mahanadi-Scout', type: 'ground', status: 'Ready', battery: 86, connection: 'strong', task: 'Standing by — Sluice Gate Monitor', x: 220, y: 340, home: { x: 220, y: 340 } }
+    ],
+    heavyRovers: [
+      { id: 'HL-OD-01', name: 'Kalinga-SkyCrane 1', type: 'aerial', category: 'heavylift', airframe: 'High-Wind Hexacopter Lifter', capacity: '130 kg', capacityKg: 130, status: 'Ready', payloadId: 'medikit_trauma', payloadStatus: 'loaded', battery: 93, speedKmH: 76, task: 'Armed & Standing by — Puri Pad 1', baseName: 'Puri Coastal Command', x: 720, y: 520, home: { x: 720, y: 520 } },
+      { id: 'HL-OD-02', name: 'Mahanadi-Airlift Pod', type: 'aerial', category: 'heavylift', airframe: 'Heavy VTOL Carrier', capacity: '150 kg', capacityKg: 150, status: 'Ready', payloadId: null, payloadStatus: 'unloaded', battery: 89, speedKmH: 82, task: 'Standing by — Cargo bay empty (Cuttack)', baseName: 'Cuttack Delta Staging Base', x: 220, y: 340, home: { x: 220, y: 340 } },
+      { id: 'HL-OD-03', name: 'Chilika-Cargo Flyer', type: 'aerial', category: 'heavylift', airframe: 'Octocopter Cargo Carrier', capacity: '110 kg', capacityKg: 110, status: 'Ready', payloadId: 'water_purify', payloadStatus: 'loaded', battery: 95, speedKmH: 72, task: 'Armed & Standing by — Puri Pad 2', baseName: 'Puri Coastal Command', x: 720, y: 520, home: { x: 720, y: 520 } }
     ],
     hazards: [
       { id: 'OH-01', type: 'Cyclone', name: 'Extremely Severe Cyclonic Storm', location: 'Offshore Puri-Ganjam Coast (130 km/h)', detected: '06:15', severity: 'severe', status: 'Active', source: 'IMD Bhubaneswar', x: 780, y: 200 },
@@ -234,6 +256,11 @@ const HYDRA_STATIONS = [
       { id: 'KL-03', name: 'Periyar-Aqua Inspector', type: 'ground', status: 'Ready', battery: 93, connection: 'strong', task: 'Standing by — Dam Sluice Ultrasonic Bot', x: 760, y: 560, home: { x: 760, y: 560 } },
       { id: 'KL-04', name: 'Chooralmala-1', type: 'ground', status: 'Ready', battery: 88, connection: 'strong', task: 'Standing by — High Torque Mud Tread', x: 180, y: 520, home: { x: 180, y: 520 } }
     ],
+    heavyRovers: [
+      { id: 'HL-KL-01', name: 'Sahyadri-Heavy Lifter', type: 'aerial', category: 'heavylift', airframe: 'Ghat Terrain VTOL SkyCrane', capacity: '150 kg', capacityKg: 150, status: 'Ready', payloadId: 'medikit_trauma', payloadStatus: 'loaded', battery: 94, speedKmH: 78, task: 'Armed & Standing by — Meppadi Pad 1', baseName: 'Meppadi Disaster HQ', x: 180, y: 520, home: { x: 180, y: 520 } },
+      { id: 'HL-KL-02', name: 'Periyar-AirCrane 2', type: 'aerial', category: 'heavylift', airframe: 'Heavy Hexacopter Lifter', capacity: '120 kg', capacityKg: 120, status: 'Ready', payloadId: null, payloadStatus: 'unloaded', battery: 87, speedKmH: 74, task: 'Standing by — Cargo bay empty (Kochi Airbase)', baseName: 'Kochi Coastal Airbase', x: 760, y: 560, home: { x: 760, y: 560 } },
+      { id: 'HL-KL-03', name: 'Chooralmala-Supply Drone', type: 'aerial', category: 'heavylift', airframe: 'Heavy Octocopter Pod', capacity: '100 kg', capacityKg: 100, status: 'Ready', payloadId: 'plasma_coldbox', payloadStatus: 'loaded', battery: 92, speedKmH: 70, task: 'Armed & Standing by — Meppadi Pad 2', baseName: 'Meppadi Disaster HQ', x: 180, y: 520, home: { x: 180, y: 520 } }
+    ],
     hazards: [
       { id: 'WH-01', type: 'Landslide', name: 'Chooralmala Catastrophic Mudslide', location: 'Meppadi-Chooralmala Ghat Ridge', detected: '04:10', severity: 'severe', status: 'Active', source: 'KSDMA', x: 420, y: 220 },
       { id: 'WH-02', type: 'Flood', name: 'Idukki Dam High Discharge Sluice', location: 'Periyar River Gorge Basin', detected: '06:30', severity: 'severe', status: 'Active', source: 'KSEB', x: 650, y: 450 },
@@ -279,6 +306,12 @@ const HYDRA_STATIONS = [
       { id: 'MB-03', name: 'Salsette-Amphibian', type: 'ground', status: 'Ready', battery: 94, connection: 'strong', task: 'Standing by — Submerged Highway Bot', x: 240, y: 540, home: { x: 240, y: 540 } },
       { id: 'MB-04', name: 'Konkan-Patrol', type: 'aerial', status: 'Ready', battery: 90, connection: 'strong', task: 'Standing by — Coastal Wind Monitor', x: 740, y: 560, home: { x: 740, y: 560 } }
     ],
+    heavyRovers: [
+      { id: 'HL-MB-01', name: 'Salsette-Heavy SkyCrane', type: 'aerial', category: 'heavylift', airframe: 'Urban Deluge VTOL Carrier', capacity: '160 kg', capacityKg: 160, status: 'Ready', payloadId: 'medikit_trauma', payloadStatus: 'loaded', battery: 95, speedKmH: 84, task: 'Armed & Standing by — BKC Pad 1', baseName: 'BKC Emergency HQ', x: 240, y: 540, home: { x: 240, y: 540 } },
+      { id: 'HL-MB-02', name: 'Gateway-Cargo Lifter', type: 'aerial', category: 'heavylift', airframe: 'High-Payload Hexacopter', capacity: '120 kg', capacityKg: 120, status: 'Ready', payloadId: null, payloadStatus: 'unloaded', battery: 91, speedKmH: 76, task: 'Standing by — Cargo bay empty (Colaba)', baseName: 'Colaba Marine Station', x: 740, y: 560, home: { x: 740, y: 560 } },
+      { id: 'HL-MB-03', name: 'Konkan-AirDrop Pod', type: 'aerial', category: 'heavylift', airframe: 'Heavy Octocopter', capacity: '130 kg', capacityKg: 130, status: 'Ready', payloadId: 'inflatable_raft', payloadStatus: 'loaded', battery: 89, speedKmH: 72, task: 'Armed & Standing by — BKC Pad 2', baseName: 'BKC Emergency HQ', x: 240, y: 540, home: { x: 240, y: 540 } }
+    ],
+
     hazards: [
       { id: 'MH-01', type: 'Flood', name: 'Mithi River Overflow & Kurla Basin', location: 'Mithi River Basin, Central Mumbai', detected: '06:50', severity: 'severe', status: 'Active', source: 'BMC Disaster Cell', x: 460, y: 380 },
       { id: 'MH-02', type: 'Flood', name: 'High Tide (4.8m) Sea Inundation', location: 'Marine Drive & Worli Seafront', detected: '07:30', severity: 'severe', status: 'Active', source: 'INCOIS', x: 740, y: 490 },
@@ -324,6 +357,11 @@ const HYDRA_STATIONS = [
       { id: 'WB-03', name: 'Delta-Crawler', type: 'ground', status: 'Ready', battery: 91, connection: 'strong', task: 'Standing by — Mudflat All-Terrain Unit', x: 190, y: 540, home: { x: 190, y: 540 } },
       { id: 'WB-04', name: 'Kakdwip-Flyer', type: 'aerial', status: 'Ready', battery: 95, connection: 'strong', task: 'Standing by — Offshore Islands Scanner', x: 750, y: 510, home: { x: 750, y: 510 } }
     ],
+    heavyRovers: [
+      { id: 'HL-WB-01', name: 'Sundarban-Heavy VTOL', type: 'aerial', category: 'heavylift', airframe: 'Delta Heavy SkyCrane', capacity: '150 kg', capacityKg: 150, status: 'Ready', payloadId: 'medikit_trauma', payloadStatus: 'loaded', battery: 94, speedKmH: 78, task: 'Armed & Standing by — Alipore Pad 1', baseName: 'Alipore Disaster Central HQ', x: 190, y: 540, home: { x: 190, y: 540 } },
+      { id: 'HL-WB-02', name: 'Hooghly-Cargo Lifter', type: 'aerial', category: 'heavylift', airframe: 'Heavy Hexacopter Lifter', capacity: '120 kg', capacityKg: 120, status: 'Ready', payloadId: null, payloadStatus: 'unloaded', battery: 90, speedKmH: 74, task: 'Standing by — Cargo bay empty (Kakdwip)', baseName: 'Kakdwip Delta Command', x: 750, y: 510, home: { x: 750, y: 510 } },
+      { id: 'HL-WB-03', name: 'Delta-Airlift Drone', type: 'aerial', category: 'heavylift', airframe: 'Heavy Octocopter Pod', capacity: '110 kg', capacityKg: 110, status: 'Ready', payloadId: 'water_purify', payloadStatus: 'loaded', battery: 93, speedKmH: 72, task: 'Armed & Standing by — Alipore Pad 2', baseName: 'Alipore Disaster Central HQ', x: 190, y: 540, home: { x: 190, y: 540 } }
+    ],
     hazards: [
       { id: 'SH-01', type: 'Cyclone', name: 'Severe Cyclonic Landfall Surge', location: 'Sundarbans Outer Islands Channel', detected: '05:40', severity: 'severe', status: 'Active', source: 'IMD Kolkata', x: 670, y: 320 },
       { id: 'SH-02', type: 'Flood', name: 'Gosaba Tidal Embankment Failure', location: 'South 24 Parganas Delta Reach', detected: '06:55', severity: 'severe', status: 'Active', source: 'WBDMD', x: 790, y: 480 },
@@ -368,6 +406,11 @@ const HYDRA_STATIONS = [
       { id: 'GJ-02', name: 'Kutch-SeismoDrone', type: 'aerial', status: 'Deployed', battery: 85, connection: 'strong', task: 'Gulf of Kutch Wind & Wave Radar', x: 760, y: 440, home: { x: 740, y: 520 }, hazardId: 'BH-02' },
       { id: 'GJ-03', name: 'Kandla-Surge Rover', type: 'ground', status: 'Ready', battery: 93, connection: 'strong', task: 'Standing by — Port Chemical Hazard Bot', x: 740, y: 520, home: { x: 740, y: 520 } },
       { id: 'GJ-04', name: 'Anjar-Rescue Scout', type: 'ground', status: 'Ready', battery: 89, connection: 'strong', task: 'Standing by — Rubble Penetration Bot', x: 220, y: 530, home: { x: 220, y: 530 } }
+    ],
+    heavyRovers: [
+      { id: 'HL-GJ-01', name: 'Rann-Heavy SkyCrane', type: 'aerial', category: 'heavylift', airframe: 'Desert Heavy VTOL Carrier', capacity: '160 kg', capacityKg: 160, status: 'Ready', payloadId: 'medikit_trauma', payloadStatus: 'loaded', battery: 95, speedKmH: 84, task: 'Armed & Standing by — Bhuj Pad 1', baseName: 'Bhuj Seismo Command HQ', x: 220, y: 530, home: { x: 220, y: 530 } },
+      { id: 'HL-GJ-02', name: 'Kutch-Airlifter 2', type: 'aerial', category: 'heavylift', airframe: 'Heavy Hexacopter Lifter', capacity: '120 kg', capacityKg: 120, status: 'Ready', payloadId: null, payloadStatus: 'unloaded', battery: 89, speedKmH: 76, task: 'Standing by — Cargo bay empty (Kandla)', baseName: 'Kandla Port Industrial Depot', x: 740, y: 520, home: { x: 740, y: 520 } },
+      { id: 'HL-GJ-03', name: 'Kandla-Cargo Pod', type: 'aerial', category: 'heavylift', airframe: 'Heavy Octocopter', capacity: '130 kg', capacityKg: 130, status: 'Ready', payloadId: 'hazmat_decon', payloadStatus: 'loaded', battery: 92, speedKmH: 72, task: 'Armed & Standing by — Bhuj Pad 2', baseName: 'Bhuj Seismo Command HQ', x: 220, y: 530, home: { x: 220, y: 530 } }
     ],
     hazards: [
       { id: 'BH-01', type: 'Earthquake', name: 'Kutch Mainland Fault Active Swarm', location: 'Bhuj North Rupture Zone (M 5.8)', detected: '04:45', severity: 'severe', status: 'Active', source: 'ISR Gujarat', x: 480, y: 310 },
@@ -417,6 +460,11 @@ const HYDRA_STATIONS = [
       { id: 'HP-03', name: 'Rohtang-Crawler', type: 'ground', status: 'Ready', battery: 94, connection: 'strong', task: 'Standing by — Scree Slope Heavy Bot', x: 190, y: 550, home: { x: 190, y: 550 } },
       { id: 'HP-04', name: 'Parvati-Scout', type: 'ground', status: 'Ready', battery: 87, connection: 'strong', task: 'Standing by — Tributary Valley Explorer', x: 760, y: 210, home: { x: 760, y: 210 } }
     ],
+    heavyRovers: [
+      { id: 'HL-HP-01', name: 'Himalaya-Heavy SkyCrane', type: 'aerial', category: 'heavylift', airframe: 'Sub-Zero Alpine Heavy VTOL', capacity: '140 kg', capacityKg: 140, status: 'Ready', payloadId: 'medikit_trauma', payloadStatus: 'loaded', battery: 96, speedKmH: 80, task: 'Armed & Standing by — Shimla Pad 1', baseName: 'Shimla Ridge Operations Base', x: 190, y: 550, home: { x: 190, y: 550 } },
+      { id: 'HL-HP-02', name: 'Beas-Cargo Lifter', type: 'aerial', category: 'heavylift', airframe: 'Heavy Alpine Hexacopter', capacity: '120 kg', capacityKg: 120, status: 'Ready', payloadId: null, payloadStatus: 'unloaded', battery: 90, speedKmH: 74, task: 'Standing by — Cargo bay empty (Kullu)', baseName: 'Kullu Valley Forward Depot', x: 760, y: 210, home: { x: 760, y: 210 } },
+      { id: 'HL-HP-03', name: 'Rohtang-Airlift Pod', type: 'aerial', category: 'heavylift', airframe: 'High-Altitude Octocopter', capacity: '110 kg', capacityKg: 110, status: 'Ready', payloadId: 'survival_rations', payloadStatus: 'loaded', battery: 93, speedKmH: 72, task: 'Armed & Standing by — Shimla Pad 2', baseName: 'Shimla Ridge Operations Base', x: 190, y: 550, home: { x: 190, y: 550 } }
+    ],
     hazards: [
       { id: 'SM-01', type: 'Flood', name: 'Beas River Cloudburst Spate', location: 'Pandoh-Mandi River Highway Gorge', detected: '05:10', severity: 'severe', status: 'Active', source: 'HPSDMA', x: 530, y: 280 },
       { id: 'SM-02', type: 'Landslide', name: 'Aut Tunnel Massive Rockfall', location: 'Chandigarh-Manali NH-3 Corridor', detected: '06:35', severity: 'severe', status: 'Active', source: 'BRO India', x: 390, y: 410 },
@@ -462,12 +510,95 @@ const HYDRA_STATIONS = [
       { id: 'BH-03', name: 'Ganges-Patrol', type: 'ground', status: 'Ready', battery: 96, connection: 'strong', task: 'Standing by — High Current River Rescue Bot', x: 190, y: 550, home: { x: 190, y: 550 } },
       { id: 'BH-04', name: 'Seemanchal-Scout', type: 'aerial', status: 'Ready', battery: 90, connection: 'strong', task: 'Standing by — Long Range Silt Survey UAV', x: 760, y: 220, home: { x: 760, y: 220 } }
     ],
+    heavyRovers: [
+      { id: 'HL-PT-01', name: 'Kosi-Heavy SkyCrane', type: 'aerial', category: 'heavylift', airframe: 'Delta Heavy VTOL', capacity: '150 kg', capacityKg: 150, status: 'Ready', payloadId: 'medikit_trauma', payloadStatus: 'loaded', battery: 94, speedKmH: 78, task: 'Armed & Standing by — Patna Pad 1', baseName: 'Patna Disaster Command HQ', x: 190, y: 550, home: { x: 190, y: 550 } },
+      { id: 'HL-PT-02', name: 'Ganges-Cargo Lifter', type: 'aerial', category: 'heavylift', airframe: 'Heavy Hexacopter Lifter', capacity: '130 kg', capacityKg: 130, status: 'Ready', payloadId: null, payloadStatus: 'unloaded', battery: 88, speedKmH: 74, task: 'Standing by — Cargo bay empty (Supaul)', baseName: 'Supaul Kosi Forward Base', x: 760, y: 220, home: { x: 760, y: 220 } },
+      { id: 'HL-PT-03', name: 'Mithila-Airlift Pod', type: 'aerial', category: 'heavylift', airframe: 'Heavy Octocopter', capacity: '110 kg', capacityKg: 110, status: 'Ready', payloadId: 'water_purify', payloadStatus: 'loaded', battery: 95, speedKmH: 72, task: 'Armed & Standing by — Patna Pad 2', baseName: 'Patna Disaster Command HQ', x: 190, y: 550, home: { x: 190, y: 550 } }
+    ],
     hazards: [
       { id: 'PT-01', type: 'Flood', name: 'Kosi Embankment Heavy Discharge', location: 'Birpur Barrage Sector 8 Sluice', detected: '04:30', severity: 'severe', status: 'Active', source: 'CWC Patna', x: 620, y: 220 },
       { id: 'PT-02', type: 'Flood', name: 'Ganges-Gandak Confluence Spate', location: 'Digha-Sonepur Lowland Reach', detected: '06:05', severity: 'severe', status: 'Active', source: 'BSDMA', x: 410, y: 390 },
       { id: 'PT-03', type: 'Flood', name: 'Patna Lowland Storm Inundation', location: 'Rajendra Nagar Drainage Sump', detected: '07:45', severity: 'moderate', status: 'Active', source: 'Patna Municipal', x: 290, y: 480 },
       { id: 'PT-04', type: 'Earthquake', name: 'Bihar-Nepal Border Fault (M 4.7)', location: 'Raxaul-Birgunj Border Fault Zone', detected: '03:10', severity: 'moderate', status: 'Monitoring', magnitude: 'M 4.7', source: 'USGS', x: 740, y: 140 }
     ]
+  }
+];
+
+/* =========================================================
+   REINFORCEMENT SUPPLY PAYLOADS CATALOG
+========================================================= */
+const SUPPLY_PAYLOADS = [
+  {
+    id: 'medikit_trauma',
+    name: 'Level-3 Emergency Trauma Medikits (4x)',
+    shortName: 'Trauma Medikits',
+    category: 'Medical',
+    badgeClass: 'payload-medical',
+    weight: '24 kg',
+    weightKg: 24,
+    icon: 'medikit',
+    desc: 'Advanced surgical sets, arterial tourniquets, burn dressings, chest seals & IV blood expanders.',
+    units: 4
+  },
+  {
+    id: 'plasma_coldbox',
+    name: 'Blood Plasma & Antivenom Cryobox (2x)',
+    shortName: 'Plasma Cryobox',
+    category: 'Biologics',
+    badgeClass: 'payload-medical',
+    weight: '18 kg',
+    weightKg: 18,
+    icon: 'plasma',
+    desc: 'Temperature-monitored (+4°C) O-negative blood packs, plasma expanders & freeze-dried antivenom vials.',
+    units: 2
+  },
+  {
+    id: 'water_purify',
+    name: 'Water Purification & Electrolyte Pods',
+    shortName: 'Water Purifier',
+    category: 'Life Support',
+    badgeClass: 'payload-lifesupport',
+    weight: '32 kg',
+    weightKg: 32,
+    icon: 'water',
+    desc: 'High-throughput catalytic microfilters (5,000L), chlorine dioxide tablets & sterile WHO-ORS rehydration packs.',
+    units: 8
+  },
+  {
+    id: 'survival_rations',
+    name: '72hr Emergency Rations & Sat-Comms',
+    shortName: 'Survival Rations',
+    category: 'Life Support',
+    badgeClass: 'payload-lifesupport',
+    weight: '20 kg',
+    weightKg: 20,
+    icon: 'rations',
+    desc: 'Vacuum-sealed 3,500 kcal survival rations, solar VHF distress transceiver, satellite beacon & thermal bivouacs.',
+    units: 12
+  },
+  {
+    id: 'inflatable_raft',
+    name: 'Inflatable Rapid-Rescue Raft (6-Person)',
+    shortName: 'Rescue Raft Pod',
+    category: 'Rescue',
+    badgeClass: 'payload-rescue',
+    weight: '45 kg',
+    weightKg: 45,
+    icon: 'raft',
+    desc: 'CO2 rapid-inflation 6-person flood rescue craft with high-visibility canopy & rescue perimeter lines.',
+    units: 1
+  },
+  {
+    id: 'hazmat_decon',
+    name: 'Hazmat Antidotes & Decon Pod',
+    shortName: 'Hazmat Decon',
+    category: 'CBRN',
+    badgeClass: 'payload-cbrn',
+    weight: '28 kg',
+    weightKg: 28,
+    icon: 'hazmat',
+    desc: 'Atropine autoinjectors, activated carbon respirators, neutralizing skin wipes & chemical sensor strips.',
+    units: 6
   }
 ];
 
@@ -484,8 +615,53 @@ function getStationById(id) {
 
 // Initial dataset loaded from default station (Guwahati)
 const rovers = [...HYDRA_STATIONS[0].rovers];
+const heavyRovers = (HYDRA_STATIONS[0].heavyRovers || []).map(r => ({ ...r, home: { ...r.home } }));
 let hazards = [...HYDRA_STATIONS[0].hazards];
 const fallbackHazards = [...HYDRA_STATIONS[0].hazards];
+
+// Active and completed supply airdrop markers on the map
+// { id, roverId, x, y, label, payloadId, status: 'enroute'|'delivered', deliveredAt, createdAt }
+const activeDropTargets = [];
+
+function getPayloadById(id) {
+  return SUPPLY_PAYLOADS.find(p => p.id === id) || SUPPLY_PAYLOADS[0];
+}
+
+function loadHeavyRoverPayload(roverId, payloadId) {
+  const hr = heavyRovers.find(r => r.id === roverId);
+  if (!hr) return false;
+  const payload = getPayloadById(payloadId);
+  if (!payload) return false;
+
+  hr.payloadId = payload.id;
+  hr.payloadStatus = 'loaded';
+  hr.task = `Armed with ${payload.shortName} — Ready for dispatch`;
+  return true;
+}
+
+function unloadHeavyRoverPayload(roverId) {
+  const hr = heavyRovers.find(r => r.id === roverId);
+  if (!hr) return false;
+  hr.payloadId = null;
+  hr.payloadStatus = 'unloaded';
+  hr.task = 'Standing by — Cargo bay empty';
+  return true;
+}
+
+function armAllHeavyRovers(payloadId = 'medikit_trauma') {
+  const payload = getPayloadById(payloadId);
+  heavyRovers.forEach(hr => {
+    if (hr.status === 'Ready') {
+      hr.payloadId = payload.id;
+      hr.payloadStatus = 'loaded';
+      hr.task = `Armed with ${payload.shortName} — Ready for dispatch`;
+    }
+  });
+}
+
+function getAvailableHeavyRovers() {
+  return heavyRovers.filter(r => r.status === 'Ready');
+}
 
 function switchHydraStation(stationId) {
   const station = getStationById(stationId);
@@ -496,13 +672,22 @@ function switchHydraStation(stationId) {
   // Preserve any connected physical ESP32 rovers across station changes
   const connectedEspRovers = rovers.filter(r => r.isEsp32);
 
-  // Clear simulated rovers and load the new station's unique fleet roster
+  // Clear simulated scout rovers and load new station fleet
   rovers.length = 0;
   rovers.push(...connectedEspRovers, ...station.rovers.map(r => ({ ...r, home: { ...r.home } })));
+
+  // Load new station's heavy airlift fleet
+  heavyRovers.length = 0;
+  if (station.heavyRovers) {
+    heavyRovers.push(...station.heavyRovers.map(r => ({ ...r, home: { ...r.home } })));
+  }
 
   // Load new station's localized hazards
   hazards.length = 0;
   hazards.push(...station.hazards.map(h => ({ ...h })));
+
+  // Clear active airdrop markers for previous station
+  activeDropTargets.length = 0;
 
   // Update telemetry base coordinates for physics engine
   if (typeof HYDRA_TELEMETRY !== 'undefined' && HYDRA_TELEMETRY.init) {
@@ -518,12 +703,14 @@ function switchHydraStation(stationId) {
   if (typeof state !== 'undefined') {
     state.selectedStationId = station.id;
     state.selectedRoverId = null;
+    state.selectedHeavyRoverId = null;
     state.selectedHazardId = null;
     state.activeTargetId = 'ALL';
     state.liveFeedRoverId = null;
+    state.dropDesignationActive = false;
   }
 
-  console.log(`[HYDRA] Switched to Station: ${station.name} (${station.state}) — ${station.rovers.length} local rovers, ${station.hazards.length} hazards.`);
+  console.log(`[HYDRA] Switched to Station: ${station.name} (${station.state}) — ${station.rovers.length} scout rovers, ${heavyRovers.length} heavy airlifters, ${station.hazards.length} hazards.`);
   return true;
 }
 
@@ -535,3 +722,4 @@ const hazardIcons = {
   Cyclone: `<path d="M12 12c3-4 8-2 8 2a5 5 0 0 1-9 3M12 12c-3-4-8-2-8 2a5 5 0 0 0 9 3M12 12a3 3 0 1 1 0 0" fill="none" stroke-width="1.5"/>`,
   Tsunami: `<path d="M2 18c1.5-3 3-4 5-4s3.5 2 5 2 3-3 5-3 3 1.5 5 3" fill="none" stroke-width="1.6" stroke-linecap="round"/><path d="M4 14c2-6 6-8 8-10" fill="none" stroke-width="1.4" stroke-linecap="round"/>`
 };
+

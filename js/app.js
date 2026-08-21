@@ -7,9 +7,13 @@ const state = {
   mode: 'simulation', // 'simulation' | 'live'
   selectedStationId: 'guwahati',
   stationModalOpen: false,
-  activeTargetId: 'ALL', // 'ALL' | hazardId
+  activeTargetId: 'ALL', // 'ALL' | hazardId | dropId
   selectedHazardId: null,
   selectedRoverId: null,
+  selectedHeavyRoverId: null,
+  leftPanelTab: 'rovers', // 'rovers' | 'reinforcements'
+  reinforcementFilter: 'all', // 'all' | 'loaded' | 'unloaded' | 'inflight'
+  dropDesignationActive: false,
   liveFeedRoverId: null,
   deployModalHazardId: null,
   deployChecked: new Set(),
@@ -130,9 +134,76 @@ async function confirmDeploy() {
 }
 
 /* =========================================================
-   EVENT DELEGATION
+   MAP CLICK TO AIRDROP REINFORCEMENTS
 ========================================================= */
+function handleMapDropClick(e) {
+  if (typeof HYDRA_MAP_INTERACTIONS !== 'undefined' && HYDRA_MAP_INTERACTIONS.hasDragged) return;
+  if (!state.dropDesignationActive && state.leftPanelTab !== 'reinforcements') return;
+  if (e.target.closest('.map-toolbar') || e.target.closest('.map-controls') || e.target.closest('.map-legend') || e.target.closest('button') || e.target.closest('.rover-info-panel')) return;
+
+  const mapWrap = e.target.closest('.map-wrap');
+  if (!mapWrap) return;
+
+  const rect = mapWrap.getBoundingClientRect();
+  const relX = (e.clientX - rect.left) / Math.max(1, rect.width);
+  const relY = (e.clientY - rect.top) / Math.max(1, rect.height);
+  const svgX = currentViewBox.x + relX * currentViewBox.w;
+  const svgY = currentViewBox.y + relY * currentViewBox.h;
+
+  if (svgX < 0 || svgX > 1000 || svgY < 0 || svgY > 640) return;
+
+  // Check if click was on or near an existing hazard
+  const clickedHazard = hazards.find(h => Math.hypot(h.x - svgX, h.y - svgY) < 32);
+
+  // Find heavy air rover to dispatch
+  let roverToDispatch = null;
+  if (state.selectedHeavyRoverId) {
+    roverToDispatch = heavyRovers.find(r => r.id === state.selectedHeavyRoverId && r.status === 'Ready');
+  }
+  if (!roverToDispatch) {
+    roverToDispatch = heavyRovers.find(r => r.status === 'Ready' && r.payloadStatus === 'loaded');
+  }
+  if (!roverToDispatch) {
+    roverToDispatch = heavyRovers.find(r => r.status === 'Ready');
+    if (roverToDispatch) {
+      loadHeavyRoverPayload(roverToDispatch.id, 'medikit_trauma');
+    }
+  }
+
+  if (!roverToDispatch) {
+    alert('All Heavy-Lifting Air Rovers are currently in flight. Awaiting Base Return.');
+    return;
+  }
+
+  const targetLocation = {
+    x: clickedHazard ? clickedHazard.x : Math.round(svgX),
+    y: clickedHazard ? clickedHazard.y : Math.round(svgY),
+    label: clickedHazard ? `${clickedHazard.name.split(',')[0]} Drop Zone` : `Sector (${Math.round(svgX)}, ${Math.round(svgY)})`,
+    hazardId: clickedHazard ? clickedHazard.id : null
+  };
+
+  const dropRecord = HYDRA_TELEMETRY.startHeavyAirliftMission(roverToDispatch.id, targetLocation, roverToDispatch.payloadId || 'medikit_trauma');
+  if (dropRecord) {
+    state.activeTargetId = dropRecord.id;
+    state.dropDesignationActive = false;
+    const envelope = getTargetEnvelope(dropRecord.id);
+    animateViewBoxTo(envelope);
+    render();
+  }
+}
+
+/* =========================================================
+   EVENT DELEGATION
+======================================================== */
 document.addEventListener('click', (e) => {
+  // 1. Check for Map Airdrop Designation clicks
+  if (state.dropDesignationActive || (state.leftPanelTab === 'reinforcements' && e.target.closest('.map-svg'))) {
+    const isSpecialBtn = e.target.closest('[data-action]') && !e.target.closest('.map-svg');
+    if (!isSpecialBtn) {
+      handleMapDropClick(e);
+    }
+  }
+
   const overlayClose = e.target.closest('[data-action="overlay-close"]');
   const stopEl = e.target.closest('[data-stop]');
   if (overlayClose && !stopEl) {
@@ -175,6 +246,7 @@ document.addEventListener('click', (e) => {
       state.mode = t.dataset.mode;
       state.selectedHazardId = null;
       state.selectedRoverId = null;
+      state.selectedHeavyRoverId = null;
       state.liveFeedRoverId = null;
       state.deployModalHazardId = null;
       if (state.mode === 'live') {
@@ -207,7 +279,14 @@ document.addEventListener('click', (e) => {
       break;
     case 'select-hazard':
       if (typeof HYDRA_MAP_INTERACTIONS !== 'undefined' && HYDRA_MAP_INTERACTIONS.hasDragged) break;
-      state.selectedHazardId = state.selectedHazardId === id ? null : id;
+      if (state.selectedHazardId === id) {
+        state.selectedHazardId = null;
+      } else {
+        state.selectedHazardId = id;
+        state.activeTargetId = id;
+        const envelope = getTargetEnvelope(id);
+        animateViewBoxTo(envelope);
+      }
       render();
       break;
     case 'select-rover': {
@@ -224,6 +303,63 @@ document.addEventListener('click', (e) => {
       state.selectedRoverId = null;
       render();
       break;
+
+    /* ---------- REINFORCEMENT SYSTEM ACTIONS ---------- */
+    case 'switch-left-tab':
+      state.leftPanelTab = t.dataset.tab || 'rovers';
+      render();
+      break;
+    case 'select-heavy-rover':
+      state.selectedHeavyRoverId = state.selectedHeavyRoverId === id ? null : id;
+      render();
+      break;
+    case 'set-reinforce-filter':
+      state.reinforcementFilter = t.dataset.filter || 'all';
+      render();
+      break;
+    case 'toggle-drop-designation':
+      state.dropDesignationActive = !state.dropDesignationActive;
+      state.leftPanelTab = 'reinforcements';
+      render();
+      break;
+    case 'quick-arm-all-medikits':
+      armAllHeavyRovers('medikit_trauma');
+      render();
+      break;
+    case 'load-heavy-payload': {
+      const selectEl = document.getElementById(`payloadSelect_${id}`);
+      const pId = selectEl ? selectEl.value : 'medikit_trauma';
+      loadHeavyRoverPayload(id, pId);
+      render();
+      break;
+    }
+    case 'quick-load-single':
+      loadHeavyRoverPayload(id, t.dataset.payload || 'medikit_trauma');
+      render();
+      break;
+    case 'unload-heavy-payload':
+      unloadHeavyRoverPayload(id);
+      render();
+      break;
+    case 'dispatch-heavy-rover':
+      state.selectedHeavyRoverId = id;
+      state.dropDesignationActive = true;
+      state.leftPanelTab = 'reinforcements';
+      render();
+      break;
+    case 'focus-drop-target': {
+      const hr = (typeof heavyRovers !== 'undefined') ? heavyRovers.find(r => r.id === id) : null;
+      const telem = hr ? HYDRA_TELEMETRY.getRoverTelemetry(hr.id) : null;
+      if (telem && telem.dropId) {
+        state.activeTargetId = telem.dropId;
+        const envelope = getTargetEnvelope(telem.dropId);
+        animateViewBoxTo(envelope);
+        render();
+      }
+      break;
+    }
+
+    /* ---------- CAMERA FEED ACTIONS ---------- */
     case 'toggle-feed':
       state.liveFeedRoverId = state.liveFeedRoverId === id ? null : id;
       state.feedViewMode = 'single';
@@ -247,11 +383,15 @@ document.addEventListener('click', (e) => {
       state.feedViewMode = 'single';
       render();
       break;
-    case 'open-deploy':
+
+    /* ---------- SCOUT FLEET DISPATCH ACTIONS ---------- */
+    case 'open-deploy': {
       state.deployModalHazardId = id;
-      state.deployChecked = new Set();
+      const readyRovers = rovers.filter(r => r.status === 'Ready');
+      state.deployChecked = new Set(readyRovers.map(r => r.id));
       render();
       break;
+    }
     case 'close-deploy':
       closeDeployModal();
       break;
@@ -272,6 +412,36 @@ document.addEventListener('click', (e) => {
     case 'confirm-deploy':
       confirmDeploy();
       break;
+    case 'quick-deploy-single': {
+      const roverId = t.dataset.rover;
+      const hazardId = t.dataset.hazard;
+      if (roverId && hazardId) {
+        HYDRA_TELEMETRY.startMission(roverId, hazardId);
+        const h = byId(hazards, hazardId);
+        if (h) h.status = 'Active';
+        state.activeTargetId = hazardId;
+        const targetEnvelope = getTargetEnvelope(hazardId);
+        animateViewBoxTo(targetEnvelope);
+        render();
+      }
+      break;
+    }
+    case 'quick-deploy-all-to-hazard': {
+      const hazardId = id || t.dataset.id;
+      const available = rovers.filter(r => r.status === 'Ready');
+      if (hazardId && available.length > 0) {
+        available.forEach(r => {
+          HYDRA_TELEMETRY.startMission(r.id, hazardId);
+        });
+        const h = byId(hazards, hazardId);
+        if (h) h.status = 'Active';
+        state.activeTargetId = hazardId;
+        const targetEnvelope = getTargetEnvelope(hazardId);
+        animateViewBoxTo(targetEnvelope);
+        render();
+      }
+      break;
+    }
 
     /* ---------- ESP32 ACTIONS ---------- */
     case 'open-esp32-modal':
@@ -388,40 +558,40 @@ setInterval(() => {
 
 // Live map & telemetry refresh tick (keeps rover positions & ETAs moving smoothly)
 setInterval(() => {
-  if (typeof rovers !== 'undefined') {
-    const hasMovingRovers = rovers.some(r => r.status === 'Deployed' || r.status === 'On Site');
-    if (hasMovingRovers) {
-      const mapWrap = document.querySelector('.map-wrap');
-      if (mapWrap) {
-        // Robust SVG map update without XML parserentity errors
-        const svgEl = document.querySelector('.map-svg');
-        if (svgEl) {
-          const temp = document.createElement('div');
-          temp.innerHTML = renderMapSvg();
-          const newSvg = temp.firstElementChild;
-          if (newSvg) {
-            svgEl.replaceWith(newSvg);
-          }
+  const hasMovingRovers = typeof rovers !== 'undefined' && rovers.some(r => r.status === 'Deployed' || r.status === 'On Site');
+  const hasMovingHeavy = typeof heavyRovers !== 'undefined' && heavyRovers.some(r => r.status === 'Deployed' || r.status === 'Returning');
+  
+  if (hasMovingRovers || hasMovingHeavy) {
+    const mapWrap = document.querySelector('.map-wrap');
+    if (mapWrap) {
+      // Robust SVG map update without XML parserentity errors
+      const svgEl = document.querySelector('.map-svg');
+      if (svgEl) {
+        const temp = document.createElement('div');
+        temp.innerHTML = renderMapSvg();
+        const newSvg = temp.firstElementChild;
+        if (newSvg) {
+          svgEl.replaceWith(newSvg);
         }
+      }
 
-        // Smoothly update Target HUD without destroying card wrapper
-        const hudEl = document.querySelector('.target-hud-overlay');
-        const newHudHtml = renderTargetHudOverlay();
-        if (hudEl) {
-          if (newHudHtml) {
-            const tempHud = document.createElement('div');
-            tempHud.innerHTML = newHudHtml;
-            if (tempHud.firstElementChild) {
-              hudEl.replaceWith(tempHud.firstElementChild);
-            }
-          } else {
-            hudEl.remove();
+      // Smoothly update Target HUD without destroying card wrapper
+      const hudEl = document.querySelector('.target-hud-overlay');
+      const newHudHtml = renderTargetHudOverlay();
+      if (hudEl) {
+        if (newHudHtml) {
+          const tempHud = document.createElement('div');
+          tempHud.innerHTML = newHudHtml;
+          if (tempHud.firstElementChild) {
+            hudEl.replaceWith(tempHud.firstElementChild);
           }
-        } else if (newHudHtml) {
-          const mapToolbar = document.querySelector('.map-toolbar');
-          if (mapToolbar) {
-            mapToolbar.insertAdjacentHTML('afterend', newHudHtml);
-          }
+        } else {
+          hudEl.remove();
+        }
+      } else if (newHudHtml) {
+        const mapToolbar = document.querySelector('.map-toolbar');
+        if (mapToolbar) {
+          mapToolbar.insertAdjacentHTML('afterend', newHudHtml);
         }
       }
     }
@@ -433,11 +603,20 @@ setInterval(() => {
   state.lastUpdate = new Date();
   const lu = document.getElementById('lastUpdateVal');
   if (lu) lu.textContent = fmtTime(state.lastUpdate);
-  rovers.forEach(r => {
-    if (r.status === 'Deployed' && r.battery > 5) {
-      r.battery -= (Math.random() < 0.25 ? 1 : 0);
-    }
-  });
+  if (typeof rovers !== 'undefined') {
+    rovers.forEach(r => {
+      if (r.status === 'Deployed' && r.battery > 5) {
+        r.battery -= (Math.random() < 0.25 ? 1 : 0);
+      }
+    });
+  }
+  if (typeof heavyRovers !== 'undefined') {
+    heavyRovers.forEach(hr => {
+      if (hr.status === 'Deployed' && hr.battery > 5) {
+        hr.battery -= (Math.random() < 0.2 ? 1 : 0);
+      }
+    });
+  }
 }, 8000);
 
 // Auto-sync live hazard APIs every 30 seconds
