@@ -1,14 +1,14 @@
-# HYDRA Swarm — Hazard Response & Scout Rover Operations
+# AEGIS Swarm — Hazard Response & Scout Rover Operations
 
 Tactical Autonomous Fleet Coordination & Real-Time Hazard Response System for Disaster Management.
 
-🌐 **Live Deployment**: [https://yugcore.github.io/HydraSwarm/](https://yugcore.github.io/HydraSwarm/)
+🌐 **Live Deployment**: [https://yugcore.github.io/AegisSwarm/](https://yugcore.github.io/AegisSwarm/)
 
 ---
 
 ## 🚀 Overview
 
-HYDRA is a comprehensive mission control dashboard for coordinating disaster response rovers, monitoring live multi-agency satellite/ground hazard telemetry (USGS Earthquakes, NASA EONET Wildfires & Cyclones, Open-Meteo Weather Alerts), and managing real ESP32 / simulated scout rovers in the field.
+AEGIS is a comprehensive mission control dashboard for coordinating disaster response rovers, monitoring live multi-agency satellite/ground hazard telemetry (USGS Earthquakes, NASA EONET Wildfires & Cyclones, Open-Meteo Weather Alerts), and managing real ESP32 / simulated scout rovers in the field.
 
 ### Key Capabilities:
 - **Interactive Tactical Operations Map**: Real-time Mercator SVG projection with zoom/pan, multi-station switching, sector hazard heat zones, and dynamic rover path tracing.
@@ -23,7 +23,7 @@ HYDRA is a comprehensive mission control dashboard for coordinating disaster res
 
 To host this repository on GitHub Pages:
 
-1. Go to your repository on GitHub: [https://github.com/yugcore/HydraSwarm](https://github.com/yugcore/HydraSwarm)
+1. Go to your repository on GitHub: [https://github.com/yugcore/AegisSwarm](https://github.com/yugcore/AegisSwarm)
 2. Click on the **Settings** tab (gear icon at the top of the repo).
 3. In the left sidebar, click on **Pages** (under the "Code and automation" section).
 4. Under **Build and deployment**:
@@ -33,7 +33,7 @@ To host this repository on GitHub Pages:
 5. Click **Save**.
 6. Wait 1-2 minutes for GitHub Actions to build and deploy.
 7. Your site will be live at:
-   👉 **`https://yugcore.github.io/HydraSwarm/`**
+   👉 **`https://yugcore.github.io/AegisSwarm/`**
 
 ---
 
@@ -57,7 +57,7 @@ Then navigate to `http://localhost:8080` (or `http://localhost:8082`).
 ├── dashboard.html       # Alternative entry point
 ├── .nojekyll            # Bypasses Jekyll build on GitHub Pages
 ├── server.js            # Optional Node.js hardware bridge server
-├── ESP32_HYDRA_ROVER.ino # Arduino/ESP32 firmware code
+├── ESP32_AEGIS_ROVER.ino # Arduino/ESP32 firmware code
 ├── css/
 │   └── dashboard.css    # Mission Control dark-mode tactical theme & glassmorphism
 └── js/

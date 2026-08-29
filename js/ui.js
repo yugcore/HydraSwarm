@@ -1,5 +1,5 @@
 /* =========================================================
-   HYDRA - UI COMPONENTS (CLEAN BENTO DESIGN)
+   AEGIS - UI COMPONENTS (CLEAN BENTO DESIGN)
 ========================================================= */
 
 /* ---------- CONSOLIDATED COMMAND HEADER (48px) ---------- */
@@ -8,7 +8,7 @@ function renderTopbar() {
   const isLight = state.theme === 'light';
   const activeStation = (typeof getStationById === 'function')
     ? getStationById(state.selectedStationId || currentStationId || 'guwahati')
-    : HYDRA_STATIONS[0];
+    : AEGIS_STATIONS[0];
 
   const fleetRovers = !simActive ? rovers.filter(r => r.isEsp32) : rovers;
   const readyScouts = fleetRovers.filter(r => r.status === 'Ready').length;
@@ -30,14 +30,14 @@ function renderTopbar() {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/><circle cx="12" cy="12" r="3.5"/></svg>
         </div>
         <div class="brand-text">
-          <span class="brand-name">HYDRA</span>
+          <span class="brand-name">AEGIS</span>
           <span class="brand-sub">OPS</span>
         </div>
       </div>
 
       <div class="topbar-v-divider"></div>
 
-      <button class="station-pill-btn" data-action="open-station-modal" title="Switch Station (${HYDRA_STATIONS.length} Available)">
+      <button class="station-pill-btn" data-action="open-station-modal" title="Switch Station (${AEGIS_STATIONS.length} Available)">
         <span class="station-pill-text">${activeStation.shortName}</span>
         <span class="station-pill-badge ${activeStation.badgeClass}">${activeStation.riskLevel}</span>
         <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity:0.5;"><polyline points="6 9 12 15 18 9"/></svg>
@@ -136,11 +136,11 @@ function renderRoverPanel() {
   const isLive = state.mode === 'live';
   const activeStation = (typeof getStationById === 'function')
     ? getStationById(state.selectedStationId || currentStationId || 'guwahati')
-    : HYDRA_STATIONS[0];
+    : AEGIS_STATIONS[0];
   const fleetRovers = isLive ? rovers.filter(r => r.isEsp32) : rovers;
   const espConnectedCount = rovers.filter(r => r.isEsp32).length;
   const currentTab = state.leftPanelTab || 'rovers';
-  const heavyCount = isLive 
+  const heavyCount = isLive
     ? ((typeof heavyRovers !== 'undefined') ? heavyRovers.filter(r => r.isEsp32).length : 0)
     : ((typeof heavyRovers !== 'undefined') ? heavyRovers.length : 0);
 
@@ -196,9 +196,9 @@ function renderRoverPanel() {
               </svg>
               <span>+ Connect WiFi Rover</span>
             </div>
-            ${espConnectedCount > 0 
-              ? `<span class="wifi-pill-count">${espConnectedCount} Linked</span>` 
-              : `<span class="wifi-sub-hint">ESP32 / IoT</span>`}
+            ${espConnectedCount > 0
+          ? `<span class="wifi-pill-count">${espConnectedCount} Linked</span>`
+          : `<span class="wifi-sub-hint">ESP32 / IoT</span>`}
           </button>
           ${espConnectedCount > 0 ? `
             <button class="mini-btn mini-btn-danger" data-action="clear-all-esp32" title="Disconnect and clear all WiFi rovers" style="flex:none;font-size:9.5px;font-weight:700;padding:6px 8px;white-space:nowrap;">
@@ -210,8 +210,8 @@ function renderRoverPanel() {
         const selected = state.selectedRoverId === r.id;
         const isDeployed = r.status === 'Deployed' || r.status === 'On Site';
         const feedOn = state.liveFeedRoverId === r.id;
-        const telem = HYDRA_TELEMETRY.getRoverTelemetry(r.id);
-        const etaText = isDeployed ? HYDRA_TELEMETRY.formatEta(telem.etaSeconds) : '—';
+        const telem = AEGIS_TELEMETRY.getRoverTelemetry(r.id);
+        const etaText = isDeployed ? AEGIS_TELEMETRY.formatEta(telem.etaSeconds) : '—';
         const isEsp = !!r.isEsp32;
         const isExpanded = selected || isDeployed;
 
@@ -356,8 +356,8 @@ function renderReinforcementPanelContent() {
     const isSelected = state.selectedHeavyRoverId === hr.id;
     const isLoaded = hr.payloadStatus === 'loaded';
     const isDeployed = hr.status === 'Deployed' || hr.status === 'Returning';
-    const telem = HYDRA_TELEMETRY.getRoverTelemetry(hr.id);
-    const etaText = isDeployed ? HYDRA_TELEMETRY.formatEta(telem.etaSeconds) : '—';
+    const telem = AEGIS_TELEMETRY.getRoverTelemetry(hr.id);
+    const etaText = isDeployed ? AEGIS_TELEMETRY.formatEta(telem.etaSeconds) : '—';
     const payload = hr.payloadId ? getPayloadById(hr.payloadId) : null;
     const isExpanded = isSelected || isDeployed;
 
@@ -475,7 +475,7 @@ function renderHazardPanel() {
   const isLive = state.mode === 'live';
   const activeStation = (typeof getStationById === 'function')
     ? getStationById(state.selectedStationId || currentStationId || 'guwahati')
-    : HYDRA_STATIONS[0];
+    : AEGIS_STATIONS[0];
 
   const availableRovers = isLive
     ? rovers.filter(r => r.isEsp32 && r.status === 'Ready')
@@ -485,7 +485,7 @@ function renderHazardPanel() {
     const selected = state.selectedHazardId === h.id;
     const assigned = rovers.filter(r => r.hazardId === h.id);
     const sourceTag = h.source ? `<span class="source-tag">${h.source}</span>` : '';
-    
+
     return `
     <div class="hazard-card compact-card ${selected ? 'selected' : ''} ${selected ? 'expanded' : ''}" data-id="${h.id}">
       <div class="hazard-head" data-action="select-hazard" data-id="${h.id}" title="${escapeAttr(h.name)} &bull; ${escapeAttr(h.location)}">
@@ -638,10 +638,10 @@ function renderEsp32Modal() {
     return `<div class="modal-overlay" id="esp32ModalOverlay"></div>`;
   }
 
-  const activeTab = HYDRA_ESP32.activeTab || 'scanner';
-  const isScanning = HYDRA_ESP32.isScanning;
+  const activeTab = AEGIS_ESP32.activeTab || 'scanner';
+  const isScanning = AEGIS_ESP32.isScanning;
   const isLive = state.mode === 'live';
-  const discovered = HYDRA_ESP32.discoveredDevices || [];
+  const discovered = AEGIS_ESP32.discoveredDevices || [];
 
   // Helper for RSSI signal bars
   function renderRssiBars(rssi) {
@@ -662,18 +662,18 @@ function renderEsp32Modal() {
     let devRows = '';
 
     if (discovered.length === 0) {
-      const stats = HYDRA_ESP32.lastScanStats;
+      const stats = AEGIS_ESP32.lastScanStats;
       devRows = `
       <div class="esp-scanner-empty" style="padding:28px 16px;text-align:center;background:var(--bg-card);border:1px dashed var(--border-card);border-radius:var(--radius-s);display:flex;flex-direction:column;align-items:center;">
         <div style="font-weight:700;font-size:12px;color:var(--text-0);margin-top:4px;">
           ${isScanning ? 'Scanning WiFi Subnet for All Active Devices...' : 'No Active Devices Responded on LAN'}
         </div>
         <div style="font-size:11px;color:var(--text-2);text-align:center;max-width:340px;margin-top:4px;line-height:1.4;">
-          ${isScanning 
-            ? 'Sending fast TCP probes across all subnet IPs on 11 ports (80, 81, 82, 554, 3000, 4747, 5000, 8080, 8081, 8888, 9000)...' 
-            : (stats 
-                ? `Scanned <b>${stats.hostsScanned}</b> LAN hosts (${stats.subnets.join(', ')}) across ${stats.portsScanned || 11} ports in ${stats.durationMs}ms. No devices responded. Ensure your rover/camera is powered on and connected to this WiFi network, or connect directly to its hotspot (192.168.4.1).` 
-                : 'Click "Scan WiFi Subnet" to search your local network for all active devices (ESP32, IP cameras, phones, Raspberry Pi), or enter your device IP directly in Manual Setup.')}
+          ${isScanning
+          ? 'Sending fast TCP probes across all subnet IPs on 11 ports (80, 81, 82, 554, 3000, 4747, 5000, 8080, 8081, 8888, 9000)...'
+          : (stats
+            ? `Scanned <b>${stats.hostsScanned}</b> LAN hosts (${stats.subnets.join(', ')}) across ${stats.portsScanned || 11} ports in ${stats.durationMs}ms. No devices responded. Ensure your rover/camera is powered on and connected to this WiFi network, or connect directly to its hotspot (192.168.4.1).`
+            : 'Click "Scan WiFi Subnet" to search your local network for all active devices (ESP32, IP cameras, phones, Raspberry Pi), or enter your device IP directly in Manual Setup.')}
         </div>
         <div style="display:flex;gap:8px;margin-top:12px;">
           <button class="btn btn-primary btn-sm" data-action="scan-esp32" ${isScanning ? 'disabled' : ''}>
@@ -801,7 +801,7 @@ function renderEsp32Modal() {
       <div class="esp-fw-head">
         <div>
           <div style="font-weight:700;font-size:12px;color:var(--text-0);">Arduino / PlatformIO ESP32-CAM Firmware</div>
-          <div style="font-size:10.5px;color:var(--text-2);">Flash your physical ESP32 board to link directly with HYDRA Mission Control.</div>
+          <div style="font-size:10.5px;color:var(--text-2);">Flash your physical ESP32 board to link directly with AEGIS Mission Control.</div>
         </div>
         <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('espInoCode').innerText); alert('Arduino .ino firmware code copied to clipboard!');">
           <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
@@ -809,12 +809,12 @@ function renderEsp32Modal() {
         </button>
       </div>
       <div class="esp-code-container">
-        <pre><code id="espInoCode" class="esp-code">// HYDRA Mission Control - ESP32-CAM Physical Rover Firmware
-// File saved in project root as: ESP32_HYDRA_ROVER.ino
+        <pre><code id="espInoCode" class="esp-code">// AEGIS Mission Control - ESP32-CAM Physical Rover Firmware
+// File saved in project root as: ESP32_AEGIS_ROVER.ino
 // 1. Open Arduino IDE -> Select Board: "AI Thinker ESP32-CAM"
 // 2. Set PSRAM: "Enabled"
-// 3. Connect to "HYDRA-ESP32-ROVER" WiFi (192.168.4.1) or your home router.
-// 4. Click "Connect" in HYDRA Scout Rovers to stream live video!
+// 3. Connect to "AEGIS-ESP32-ROVER" WiFi (192.168.4.1) or your home router.
+// 4. Click "Connect" in AEGIS Scout Rovers to stream live video!
 
 #include "esp_camera.h"
 #include &lt;WiFi.h&gt;
@@ -822,7 +822,7 @@ function renderEsp32Modal() {
 
 // Camera Pins &amp; Motor Pins configured for AI-Thinker ESP32-CAM
 // Endpoints: /stream (Port 81), /status (JSON), /action?go=forward
-// Check workspace file: ESP32_HYDRA_ROVER.ino for full source code!</code></pre>
+// Check workspace file: ESP32_AEGIS_ROVER.ino for full source code!</code></pre>
       </div>
       <div class="esp-hw-specs-grid">
         <div class="hw-spec-card">
@@ -921,7 +921,7 @@ function renderStationModal() {
 
   const currentId = state.selectedStationId || currentStationId || 'guwahati';
 
-  const stationCards = HYDRA_STATIONS.map((s, idx) => {
+  const stationCards = AEGIS_STATIONS.map((s, idx) => {
     const isSelected = s.id === currentId;
     const threatsHtml = s.threats.map(t => `<span class="st-threat-tag">${t}</span>`).join('');
 
@@ -965,7 +965,7 @@ function renderStationModal() {
               </svg>
             </div>
             <div>
-              <div class="mh-title">HYDRA Disaster Response Command Stations</div>
+              <div class="mh-title">AEGIS Disaster Response Command Stations</div>
               <div class="mh-sub">Select an operational command center across high-vulnerability disaster corridors in India</div>
             </div>
           </div>
@@ -990,20 +990,20 @@ function renderStationModal() {
 }
 
 /* =========================================================
-   HYDRA HUD INSTANT HOVER TOOLTIP ENGINE
+   AEGIS HUD INSTANT HOVER TOOLTIP ENGINE
 ========================================================= */
-const HYDRA_TOOLTIP = {
+const AEGIS_TOOLTIP = {
   tooltipEl: null,
   activeTarget: null,
 
   init() {
     if (typeof document === 'undefined') return;
     if (!this.tooltipEl) {
-      let existing = document.getElementById('hydraHudTooltip');
+      let existing = document.getElementById('aegisHudTooltip');
       if (!existing) {
         this.tooltipEl = document.createElement('div');
-        this.tooltipEl.id = 'hydraHudTooltip';
-        this.tooltipEl.className = 'hydra-hud-tooltip';
+        this.tooltipEl.id = 'aegisHudTooltip';
+        this.tooltipEl.className = 'aegis-hud-tooltip';
         document.body.appendChild(this.tooltipEl);
       } else {
         this.tooltipEl = existing;
@@ -1013,7 +1013,7 @@ const HYDRA_TOOLTIP = {
     document.addEventListener('mouseover', (e) => {
       const target = e.target.closest('[data-tooltip], .hazard-name, .rover-name, .hazard-loc, .st-name, .dr-name, .cbl-name, .hds-r-name, .target-hud-title');
       if (!target) return;
-      
+
       const text = target.getAttribute('data-tooltip') || target.getAttribute('title') || target.textContent.trim();
       if (!text) return;
 
@@ -1086,9 +1086,9 @@ const HYDRA_TOOLTIP = {
 
 if (typeof document !== 'undefined') {
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => HYDRA_TOOLTIP.init());
+    document.addEventListener('DOMContentLoaded', () => AEGIS_TOOLTIP.init());
   } else {
-    HYDRA_TOOLTIP.init();
+    AEGIS_TOOLTIP.init();
   }
 }
 

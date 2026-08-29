@@ -1,8 +1,8 @@
 /* =========================================================
-   HYDRA - ROVER KINEMATICS & TELEMETRY SIMULATION ENGINE
+   AEGIS - ROVER KINEMATICS & TELEMETRY SIMULATION ENGINE
 ========================================================= */
 
-const HYDRA_TELEMETRY = {
+const AEGIS_TELEMETRY = {
   // Rover kinematic states: keyed by rover ID
   // { t: 0..1, speed: km/h, avgSpeed: km/h, distanceTraveled: km, totalDistance: km, etaSeconds: num, heading: deg, status: string, orbitAngle: num, altitude: num, isHeavy: bool, targetPos: obj, returnLeg: bool }
   records: {},
@@ -30,7 +30,7 @@ const HYDRA_TELEMETRY = {
   initRoverTelemetry(r) {
     const isDeployed = r.status === 'Deployed' || r.status === 'On Site';
     const hazard = r.hazardId ? byId(hazards, r.hazardId) : null;
-    
+
     const baseSpeed = r.type === 'aerial' ? 42 : 18;
     const currentPos = { x: r.x, y: r.y };
     const homePos = r.home || { x: r.x, y: r.y };
@@ -259,7 +259,7 @@ const HYDRA_TELEMETRY = {
       source: 'SIMULATED'
     };
 
-    console.log(`[HYDRA] Dispatched Heavy Lifter ${hr.name} with ${payload.name} to ${targetPos.label}.`);
+    console.log(`[AEGIS] Dispatched Heavy Lifter ${hr.name} with ${payload.name} to ${targetPos.label}.`);
     return dropRecord;
   },
 
@@ -307,7 +307,7 @@ const HYDRA_TELEMETRY = {
           telem.avgSpeed = telem.speedSamples.reduce((a, b) => a + b, 0) / telem.speedSamples.length;
 
           const distDeltaKm = (telem.speed / 3600) * deltaSec * SIM_TIME_SCALE;
-          
+
           telem.distanceTraveled = Math.min(telem.totalDistance, telem.distanceTraveled + distDeltaKm);
           telem.t = Math.min(1.0, telem.distanceTraveled / telem.totalDistance);
           telem.remainingDistance = Math.max(0, telem.totalDistance - telem.distanceTraveled);
@@ -405,7 +405,7 @@ const HYDRA_TELEMETRY = {
           telem.distanceTraveled = 0;
           telem.totalDistance = Math.max(1.0, returnDist);
           telem.t = 0.001;
-        } 
+        }
         // Inbound Return Leg reached Base Pad
         else if (telem.returnLeg && telem.t >= 1.0) {
           telem.returnLeg = false;
@@ -475,4 +475,4 @@ const HYDRA_TELEMETRY = {
 };
 
 // Initialize kinematics on module load
-HYDRA_TELEMETRY.init();
+AEGIS_TELEMETRY.init();

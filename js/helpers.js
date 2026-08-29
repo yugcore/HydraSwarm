@@ -1,5 +1,5 @@
 /* =========================================================
-   HYDRA - HELPER FUNCTIONS
+   AEGIS - HELPER FUNCTIONS
 ========================================================= */
 
 const $ = sel => document.querySelector(sel);

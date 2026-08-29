@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * HYDRA MISSION CONTROL — ESP32-CAM PHYSICAL ROVER / DRONE FIRMWARE
+ * AEGIS MISSION CONTROL — ESP32-CAM PHYSICAL ROVER / DRONE FIRMWARE
  * ============================================================================
  * Board: AI Thinker ESP32-CAM / ESP32-S3-CAM / ESP32-WROVER
  * Features:
@@ -24,7 +24,7 @@
 // Set USE_ACCESS_POINT to false to connect to your home/field router
 #define USE_ACCESS_POINT true
 
-const char* AP_SSID = "HYDRA-ESP32-ROVER";
+const char* AP_SSID = "AEGIS-ESP32-ROVER";
 const char* AP_PASS = "12345678"; // Min 8 chars
 
 const char* STA_SSID = "YOUR_WIFI_SSID";
@@ -247,7 +247,7 @@ void startCameraServer() {
 // ==========================================
 void setup() {
   Serial.begin(115200);
-  Serial.println("\n[HYDRA] Booting ESP32-CAM Physical Rover Firmware...");
+  Serial.println("\n[AEGIS] Booting ESP32-CAM Physical Rover Firmware...");
 
   // Initialize motor pins & LED
   pinMode(MOTOR_L_FWD, OUTPUT);
@@ -313,7 +313,7 @@ void setup() {
   }
 
   startCameraServer();
-  Serial.println("[HYDRA] ESP32 Rover Ready! Connect from HYDRA Mission Control dashboard.");
+  Serial.println("[AEGIS] ESP32 Rover Ready! Connect from AEGIS Mission Control dashboard.");
 }
 
 void loop() {

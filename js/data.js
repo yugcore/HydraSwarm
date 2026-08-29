@@ -1,11 +1,11 @@
 /* =========================================================
-   HYDRA - INDIAN DISASTER COMMAND STATIONS & FLEET ROSTERS
+   AEGIS - INDIAN DISASTER COMMAND STATIONS & FLEET ROSTERS
 ========================================================= */
 
-const HYDRA_STATIONS = [
+const AEGIS_STATIONS = [
   {
     id: 'guwahati',
-    name: 'Guwahati HYDRA Station',
+    name: 'Guwahati AEGIS Station',
     shortName: 'Guwahati Station',
     state: 'Assam',
     region: 'Brahmaputra Valley & Kopili Fault',
@@ -64,7 +64,7 @@ const HYDRA_STATIONS = [
 
   {
     id: 'chennai',
-    name: 'Chennai HYDRA Station',
+    name: 'Chennai AEGIS Station',
     shortName: 'Chennai Station',
     state: 'Tamil Nadu',
     region: 'Coromandel Coast & Bay of Bengal',
@@ -97,7 +97,7 @@ const HYDRA_STATIONS = [
     rovers: [
       { id: 'CN-01', name: 'Coromandel-Hunter', type: 'aerial', status: 'Deployed', battery: 83, connection: 'strong', task: 'Gale Wind Track — Offshore Wave Radar', x: 740, y: 150, home: { x: 800, y: 220 }, hazardId: 'CH-01' },
       { id: 'CN-02', name: 'Marina-Scout', type: 'ground', status: 'Deployed', battery: 67, connection: 'strong', task: 'Adyar Canal Flood Gate Survey', x: 380, y: 480, home: { x: 180, y: 550 }, hazardId: 'CH-02' },
-      { id: 'CN-03', name: 'Adyar-Hydra Bot', type: 'ground', status: 'Ready', battery: 91, connection: 'strong', task: 'Standing by — Submersible Water Bot', x: 180, y: 550, home: { x: 180, y: 550 } },
+      { id: 'CN-03', name: 'Adyar-Aegis Bot', type: 'ground', status: 'Ready', battery: 91, connection: 'strong', task: 'Standing by — Submersible Water Bot', x: 180, y: 550, home: { x: 180, y: 550 } },
       { id: 'CN-04', name: 'Bay-Hexacopter', type: 'aerial', status: 'Ready', battery: 97, connection: 'strong', task: 'Standing by — High Altitude Surge UAV', x: 800, y: 220, home: { x: 800, y: 220 } },
       { id: 'CN-05', name: 'Velachery-Track', type: 'ground', status: 'Returning', battery: 32, connection: 'moderate', task: 'Returning — Low Sump Clearance', x: 440, y: 420, home: { x: 180, y: 550 } }
     ],
@@ -171,7 +171,7 @@ const HYDRA_STATIONS = [
 
   {
     id: 'puri',
-    name: 'Puri & Odisha HYDRA Station',
+    name: 'Puri & Odisha AEGIS Station',
     shortName: 'Puri Station',
     state: 'Odisha',
     region: 'Mahanadi Delta & East Coast Corridor',
@@ -221,7 +221,7 @@ const HYDRA_STATIONS = [
 
   {
     id: 'wayanad',
-    name: 'Wayanad & Kochi HYDRA Station',
+    name: 'Wayanad & Kochi AEGIS Station',
     shortName: 'Wayanad Station',
     state: 'Kerala',
     region: 'Western Ghats & Periyar Basin',
@@ -271,7 +271,7 @@ const HYDRA_STATIONS = [
 
   {
     id: 'mumbai',
-    name: 'Mumbai HYDRA Station',
+    name: 'Mumbai AEGIS Station',
     shortName: 'Mumbai Station',
     state: 'Maharashtra',
     region: 'Konkan Coast & Salsette Island',
@@ -372,7 +372,7 @@ const HYDRA_STATIONS = [
 
   {
     id: 'bhuj',
-    name: 'Bhuj & Kutch HYDRA Station',
+    name: 'Bhuj & Kutch AEGIS Station',
     shortName: 'Bhuj Station',
     state: 'Gujarat',
     region: 'Kutch Fault Belt & Thar Desert Edge',
@@ -475,7 +475,7 @@ const HYDRA_STATIONS = [
 
   {
     id: 'patna',
-    name: 'Patna & Kosi HYDRA Station',
+    name: 'Patna & Kosi AEGIS Station',
     shortName: 'Patna Station',
     state: 'Bihar',
     region: 'Indo-Gangetic Plain & Kosi Basin',
@@ -561,7 +561,7 @@ const SUPPLY_PAYLOADS = [
     weight: '32 kg',
     weightKg: 32,
     icon: 'water',
-    desc: 'High-throughput catalytic microfilters (5,000L), chlorine dioxide tablets & sterile WHO-ORS rehydration packs.',
+    desc: 'High-throughput catalytic microfilters (5,000L), chlorine dioxide tablets & sterile WHO-ORS reaegistion packs.',
     units: 8
   },
   {
@@ -606,18 +606,18 @@ const SUPPLY_PAYLOADS = [
    ACTIVE FLEET & HAZARD WORKING STATE
 ========================================================= */
 
-// Default active station: Guwahati HYDRA Station (Assam)
+// Default active station: Guwahati AEGIS Station (Assam)
 let currentStationId = 'guwahati';
 
 function getStationById(id) {
-  return HYDRA_STATIONS.find(s => s.id === id) || HYDRA_STATIONS[0];
+  return AEGIS_STATIONS.find(s => s.id === id) || AEGIS_STATIONS[0];
 }
 
 // Initial dataset loaded from default station (Guwahati)
-const rovers = [...HYDRA_STATIONS[0].rovers];
-const heavyRovers = (HYDRA_STATIONS[0].heavyRovers || []).map(r => ({ ...r, home: { ...r.home } }));
-let hazards = [...HYDRA_STATIONS[0].hazards];
-const fallbackHazards = [...HYDRA_STATIONS[0].hazards];
+const rovers = [...AEGIS_STATIONS[0].rovers];
+const heavyRovers = (AEGIS_STATIONS[0].heavyRovers || []).map(r => ({ ...r, home: { ...r.home } }));
+let hazards = [...AEGIS_STATIONS[0].hazards];
+const fallbackHazards = [...AEGIS_STATIONS[0].hazards];
 
 // Active and completed supply airdrop markers on the map
 // { id, roverId, x, y, label, payloadId, status: 'enroute'|'delivered', deliveredAt, createdAt }
@@ -663,7 +663,7 @@ function getAvailableHeavyRovers() {
   return heavyRovers.filter(r => r.status === 'Ready');
 }
 
-function switchHydraStation(stationId) {
+function switchAegisStation(stationId) {
   const station = getStationById(stationId);
   if (!station) return false;
 
@@ -690,8 +690,8 @@ function switchHydraStation(stationId) {
   activeDropTargets.length = 0;
 
   // Update telemetry base coordinates for physics engine
-  if (typeof HYDRA_TELEMETRY !== 'undefined' && HYDRA_TELEMETRY.init) {
-    HYDRA_TELEMETRY.init();
+  if (typeof AEGIS_TELEMETRY !== 'undefined' && AEGIS_TELEMETRY.init) {
+    AEGIS_TELEMETRY.init();
   }
 
   // Reset map view box to full station overview
@@ -710,7 +710,7 @@ function switchHydraStation(stationId) {
     state.dropDesignationActive = false;
   }
 
-  console.log(`[HYDRA] Switched to Station: ${station.name} (${station.state}) — ${station.rovers.length} scout rovers, ${heavyRovers.length} heavy airlifters, ${station.hazards.length} hazards.`);
+  console.log(`[AEGIS] Switched to Station: ${station.name} (${station.state}) — ${station.rovers.length} scout rovers, ${heavyRovers.length} heavy airlifters, ${station.hazards.length} hazards.`);
   return true;
 }
 

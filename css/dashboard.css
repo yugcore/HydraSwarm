@@ -1,5 +1,5 @@
 /* =========================================================
-   HYDRA MISSION CONTROL - BENTO-GRID DESIGN SYSTEM
+   AEGIS MISSION CONTROL - BENTO-GRID DESIGN SYSTEM
    Supports Light & Dark Modes with Instant Single-Click Toggle
 ========================================================= */
 
@@ -17,7 +17,8 @@
 /* =========================================================
    DARK MODE TOKENS (DEFAULT)
 ========================================================= */
-[data-theme="dark"], :root {
+[data-theme="dark"],
+:root {
   --bg-canvas: #090b0e;
   --bg-panel: #11141b;
   --bg-card: #161a24;
@@ -107,13 +108,16 @@
 }
 
 /* ---------- RESET & GLOBAL LAYOUT ---------- */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-html, body {
+html,
+body {
   height: 100%;
   width: 100%;
   background: var(--bg-canvas);
@@ -368,9 +372,20 @@ input {
   flex: none;
 }
 
-.dot-amber { background: var(--accent-amber); box-shadow: 0 0 5px rgba(245, 158, 11, 0.4); }
-.dot-cyan { background: var(--accent-cyan); box-shadow: 0 0 5px rgba(56, 189, 248, 0.4); }
-.dot-emerald { background: var(--accent-emerald); box-shadow: 0 0 5px rgba(16, 185, 129, 0.4); }
+.dot-amber {
+  background: var(--accent-amber);
+  box-shadow: 0 0 5px rgba(245, 158, 11, 0.4);
+}
+
+.dot-cyan {
+  background: var(--accent-cyan);
+  box-shadow: 0 0 5px rgba(56, 189, 248, 0.4);
+}
+
+.dot-emerald {
+  background: var(--accent-emerald);
+  box-shadow: 0 0 5px rgba(16, 185, 129, 0.4);
+}
 
 /* ---------- TOPBAR RIGHT CONTROLS ---------- */
 .topbar-right {
@@ -632,8 +647,15 @@ input {
 }
 
 @keyframes fadeInExpand {
-  from { opacity: 0; transform: translateY(-3px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ---------- ROVER STATUS (IN-AIR CLEAN TEXT) ---------- */
@@ -668,7 +690,8 @@ input {
   color: var(--accent-amber);
 }
 
-.badge-offline, .badge-unavailable {
+.badge-offline,
+.badge-unavailable {
   color: var(--text-3);
 }
 
@@ -746,8 +769,13 @@ input {
   background: var(--accent-emerald);
 }
 
-.batt-fill.low { background: var(--accent-rose); }
-.batt-fill.mid { background: var(--accent-amber); }
+.batt-fill.low {
+  background: var(--accent-rose);
+}
+
+.batt-fill.mid {
+  background: var(--accent-amber);
+}
 
 .conn-pips {
   display: flex;
@@ -763,15 +791,37 @@ input {
   display: block;
 }
 
-.conn-pips i:nth-child(1) { height: 3px; }
-.conn-pips i:nth-child(2) { height: 5px; }
-.conn-pips i:nth-child(3) { height: 7px; }
-.conn-pips i:nth-child(4) { height: 9px; }
+.conn-pips i:nth-child(1) {
+  height: 3px;
+}
 
-.conn-pips.strong i { background: var(--accent-cyan); }
-.conn-pips.moderate i:nth-child(-n+3) { background: var(--accent-amber); }
-.conn-pips.weak i:nth-child(-n+1) { background: var(--accent-rose); }
-.conn-pips.none i { background: var(--border-card); }
+.conn-pips i:nth-child(2) {
+  height: 5px;
+}
+
+.conn-pips i:nth-child(3) {
+  height: 7px;
+}
+
+.conn-pips i:nth-child(4) {
+  height: 9px;
+}
+
+.conn-pips.strong i {
+  background: var(--accent-cyan);
+}
+
+.conn-pips.moderate i:nth-child(-n+3) {
+  background: var(--accent-amber);
+}
+
+.conn-pips.weak i:nth-child(-n+1) {
+  background: var(--accent-rose);
+}
+
+.conn-pips.none i {
+  background: var(--border-card);
+}
 
 .rover-actions {
   display: flex;
@@ -1241,7 +1291,7 @@ input {
   pointer-events: none;
 }
 
-.map-toolbar > * {
+.map-toolbar>* {
   pointer-events: auto;
 }
 
@@ -2115,8 +2165,17 @@ svg.map-svg {
 }
 
 @keyframes pulse-dot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.85); }
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.4;
+    transform: scale(0.85);
+  }
 }
 
 /* ---------- ESP32 ROVER CARD BADGES ---------- */
@@ -2298,7 +2357,9 @@ svg.map-svg {
 }
 
 @keyframes spin {
-  100% { transform: rotate(360deg); }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .esp-dev-list {
@@ -2399,10 +2460,21 @@ svg.map-svg {
   border-radius: 1px;
 }
 
-.rssi-meter i:nth-child(1) { height: 4px; }
-.rssi-meter i:nth-child(2) { height: 7px; }
-.rssi-meter i:nth-child(3) { height: 10px; }
-.rssi-meter i:nth-child(4) { height: 13px; }
+.rssi-meter i:nth-child(1) {
+  height: 4px;
+}
+
+.rssi-meter i:nth-child(2) {
+  height: 7px;
+}
+
+.rssi-meter i:nth-child(3) {
+  height: 10px;
+}
+
+.rssi-meter i:nth-child(4) {
+  height: 13px;
+}
 
 .rssi-meter i.bar-on {
   background: var(--accent-emerald);
@@ -3740,8 +3812,15 @@ svg.map-svg {
 }
 
 @keyframes slide-down {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .mdb-content {
@@ -3800,9 +3879,9 @@ svg.map-svg {
 }
 
 /* =========================================================
-   HYDRA HUD INSTANT HOVER TOOLTIP (SLEEK & MINIMAL)
+   AEGIS HUD INSTANT HOVER TOOLTIP (SLEEK & MINIMAL)
 ========================================================= */
-.hydra-hud-tooltip {
+.aegis-hud-tooltip {
   position: fixed;
   z-index: 999999;
   pointer-events: none;
@@ -3821,13 +3900,13 @@ svg.map-svg {
   transition: opacity 0.08s ease, transform 0.08s ease, visibility 0.08s;
 }
 
-.hydra-hud-tooltip.visible {
+.aegis-hud-tooltip.visible {
   opacity: 1;
   visibility: visible;
   transform: translateY(0) scale(1);
 }
 
-.hydra-hud-tooltip .tooltip-body {
+.aegis-hud-tooltip .tooltip-body {
   font-family: var(--font);
   font-size: 11.5px;
   font-weight: 500;

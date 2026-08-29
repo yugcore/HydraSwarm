@@ -1,9 +1,9 @@
 /* =========================================================
-   HYDRA - ESP32 WIFI ROVER & DRONE INTEGRATION MODULE
+   AEGIS - ESP32 WIFI ROVER & DRONE INTEGRATION MODULE
    Supports Physical ESP32-CAM, ESP32-S3, ESP32-WROVER & Custom IoT Hardware
 ========================================================= */
 
-const HYDRA_ESP32 = {
+const AEGIS_ESP32 = {
   // Discovery & scanner state
   isScanning: false,
   activeTab: 'scanner', // 'scanner' | 'manual' | 'firmware'
@@ -17,7 +17,7 @@ const HYDRA_ESP32 = {
   discoveredDevices: [],
 
   /* ---------- PERSISTENCE STORAGE ---------- */
-  STORAGE_KEY: 'hydra_esp32_rovers',
+  STORAGE_KEY: 'aegis_esp32_rovers',
 
   loadSavedDevices() {
     try {
@@ -31,7 +31,7 @@ const HYDRA_ESP32 = {
         }
       }
     } catch (e) {
-      console.warn('[HYDRA ESP32] Failed to load saved devices:', e);
+      console.warn('[AEGIS ESP32] Failed to load saved devices:', e);
     }
   },
 
@@ -48,7 +48,7 @@ const HYDRA_ESP32 = {
       state.liveFeedRoverId = null;
       state.feedViewMode = 'single';
     }
-    console.log('[HYDRA ESP32] Cleared all linked WiFi hardware devices from fleet.');
+    console.log('[AEGIS ESP32] Cleared all linked WiFi hardware devices from fleet.');
   },
 
   saveFleetDevices() {
@@ -58,7 +58,7 @@ const HYDRA_ESP32 = {
         localStorage.setItem(this.STORAGE_KEY, JSON.stringify(espRovers));
       }
     } catch (e) {
-      console.warn('[HYDRA ESP32] Failed to persist devices:', e);
+      console.warn('[AEGIS ESP32] Failed to persist devices:', e);
     }
   },
 
@@ -69,13 +69,13 @@ const HYDRA_ESP32 = {
     this.isScanning = true;
     if (typeof render === 'function') render();
 
-    console.log('[HYDRA ESP32] Probing local network interfaces for real ESP32 boards...');
+    console.log('[AEGIS ESP32] Probing local network interfaces for real ESP32 boards...');
 
     try {
-      const backendUrl = typeof HYDRA_API !== 'undefined' && HYDRA_API.endpoints?.localBackend 
-        ? `${HYDRA_API.endpoints.localBackend}/esp32/scan` 
+      const backendUrl = typeof AEGIS_API !== 'undefined' && AEGIS_API.endpoints?.localBackend
+        ? `${AEGIS_API.endpoints.localBackend}/esp32/scan`
         : '/api/esp32/scan';
-      
+
       const res = await fetch(backendUrl, { signal: AbortSignal.timeout(8000) }).catch(() => null);
       if (res && res.ok) {
         const data = await res.json();
@@ -92,7 +92,7 @@ const HYDRA_ESP32 = {
         }
       }
     } catch (e) {
-      console.info('[HYDRA ESP32] Backend scan fallback:', e);
+      console.info('[AEGIS ESP32] Backend scan fallback:', e);
     }
 
     // Direct browser probe fallback for 192.168.4.1 (ESP32 SoftAP hotspot)
@@ -100,7 +100,7 @@ const HYDRA_ESP32 = {
 
     this.isScanning = false;
     if (typeof render === 'function') render();
-    console.log(`[HYDRA ESP32] Scan complete. ${this.discoveredDevices.length} real hardware devices found.`);
+    console.log(`[AEGIS ESP32] Scan complete. ${this.discoveredDevices.length} real hardware devices found.`);
   },
 
   // Direct probe for ESP32 hotspot AP and local router candidates
@@ -113,7 +113,7 @@ const HYDRA_ESP32 = {
         img.onload = () => {
           if (!done) {
             done = true;
-            console.log(`[HYDRA ESP32] Real ESP32 camera hardware verified online at ${ip}!`);
+            console.log(`[AEGIS ESP32] Real ESP32 camera hardware verified online at ${ip}!`);
             if (!this.discoveredDevices.some(d => d.ip === ip)) {
               this.discoveredDevices.push({
                 id: `ESP-AP-${ip.replace(/\./g, '-')}`,
@@ -181,7 +181,7 @@ const HYDRA_ESP32 = {
 
     this.saveFleetDevices();
     if (typeof render === 'function') render();
-    console.log(`[HYDRA ESP32] Batch connected ${connectedCount} WiFi devices to fleet.`);
+    console.log(`[AEGIS ESP32] Batch connected ${connectedCount} WiFi devices to fleet.`);
     return true;
   },
 
@@ -195,7 +195,7 @@ const HYDRA_ESP32 = {
       port: parseInt(config.port, 10) || 81,
       streamPath: config.streamPath || '/stream',
       rssi: -52,
-      mac: config.mac || `24:6F:28:${Math.floor(Math.random()*90+10)}:${Math.floor(Math.random()*90+10)}:${Math.floor(Math.random()*90+10)}`,
+      mac: config.mac || `24:6F:28:${Math.floor(Math.random() * 90 + 10)}:${Math.floor(Math.random() * 90 + 10)}:${Math.floor(Math.random() * 90 + 10)}`,
       battery: 100,
       chipset: 'ESP32-CAM WiFi Hardware',
       status: 'Ready',
@@ -212,7 +212,7 @@ const HYDRA_ESP32 = {
     const streamUrl = this.buildStreamUrl(dev.ip, dev.port, dev.streamPath);
 
     // Initial tactical map placement (near depot or staging)
-    const baseCoords = isAerial 
+    const baseCoords = isAerial
       ? { x: 260 + Math.floor(Math.random() * 60), y: 530 + Math.floor(Math.random() * 40) }
       : { x: 140 + Math.floor(Math.random() * 80), y: 490 + Math.floor(Math.random() * 40) };
 
@@ -248,8 +248,8 @@ const HYDRA_ESP32 = {
     }
 
     // Initialize telemetry model
-    if (typeof HYDRA_TELEMETRY !== 'undefined' && HYDRA_TELEMETRY.initRoverTelemetry) {
-      HYDRA_TELEMETRY.initRoverTelemetry(newRover);
+    if (typeof AEGIS_TELEMETRY !== 'undefined' && AEGIS_TELEMETRY.initRoverTelemetry) {
+      AEGIS_TELEMETRY.initRoverTelemetry(newRover);
     }
 
     if (shouldSelect && typeof state !== 'undefined') {
@@ -309,7 +309,7 @@ const HYDRA_ESP32 = {
               if (data.battery !== undefined) r.battery = data.battery;
               if (data.rssi !== undefined) r.rssi = data.rssi;
               if (data.heading !== undefined || data.lat !== undefined || data.x !== undefined) {
-                HYDRA_TELEMETRY.setLiveHardwareTelemetry(r.id, data);
+                AEGIS_TELEMETRY.setLiveHardwareTelemetry(r.id, data);
               }
             }
           }
@@ -324,15 +324,15 @@ const HYDRA_ESP32 = {
   async toggleFlashLed(roverId) {
     const r = rovers.find(x => x.id === roverId && x.isEsp32);
     this.flashLedActive = !this.flashLedActive;
-    console.log(`[HYDRA ESP32] Flash LED on ${r ? r.name : 'rover'} set to: ${this.flashLedActive ? 'ON' : 'OFF'}`);
+    console.log(`[AEGIS ESP32] Flash LED on ${r ? r.name : 'rover'} set to: ${this.flashLedActive ? 'ON' : 'OFF'}`);
 
     if (r && r.ip) {
       const val = this.flashLedActive ? 255 : 0;
       // Send standard ESP32-CAM camera web server GPIO 4 intensity
-      fetch(`http://${r.ip}/control?var=led_intensity&val=${val}`, { mode: 'no-cors' }).catch(() => {});
+      fetch(`http://${r.ip}/control?var=led_intensity&val=${val}`, { mode: 'no-cors' }).catch(() => { });
       // Fallback Arduino car flash toggles
-      fetch(`http://${r.ip}/flash?val=${this.flashLedActive ? 1 : 0}`, { mode: 'no-cors' }).catch(() => {});
-      fetch(`http://${r.ip}/control?var=flash&val=${this.flashLedActive ? 1 : 0}`, { mode: 'no-cors' }).catch(() => {});
+      fetch(`http://${r.ip}/flash?val=${this.flashLedActive ? 1 : 0}`, { mode: 'no-cors' }).catch(() => { });
+      fetch(`http://${r.ip}/control?var=flash&val=${this.flashLedActive ? 1 : 0}`, { mode: 'no-cors' }).catch(() => { });
     }
 
     if (typeof render === 'function') render();
@@ -341,14 +341,14 @@ const HYDRA_ESP32 = {
   async setResolution(roverId, resName) {
     this.currentResolution = resName;
     const r = rovers.find(x => x.id === roverId && x.isEsp32);
-    console.log(`[HYDRA ESP32] Setting resolution on ${r ? r.name : 'rover'} to: ${resName}`);
+    console.log(`[AEGIS ESP32] Setting resolution on ${r ? r.name : 'rover'} to: ${resName}`);
 
     const resMap = { 'QVGA': 4, 'VGA': 6, 'SVGA': 7, 'XGA': 8, 'HD': 9 };
     const frameSize = resMap[resName] || 7;
 
     if (r && r.ip) {
       // Standard ESP32-CAM framesize command
-      fetch(`http://${r.ip}/control?var=framesize&val=${frameSize}`, { mode: 'no-cors' }).catch(() => {});
+      fetch(`http://${r.ip}/control?var=framesize&val=${frameSize}`, { mode: 'no-cors' }).catch(() => { });
     }
 
     if (typeof render === 'function') render();
@@ -356,7 +356,7 @@ const HYDRA_ESP32 = {
 
   captureSnapshot(roverId) {
     const r = rovers.find(x => x.id === roverId);
-    const filename = `HYDRA_ESP32_${r ? r.name.replace(/\s+/g, '_') : 'CAPTURE'}_${Date.now()}.jpg`;
+    const filename = `AEGIS_ESP32_${r ? r.name.replace(/\s+/g, '_') : 'CAPTURE'}_${Date.now()}.jpg`;
 
     // Try high-res physical hardware capture first if online
     if (r && r.ip) {
@@ -376,10 +376,10 @@ const HYDRA_ESP32 = {
         c.height = imgEl.naturalHeight;
         const ctx = c.getContext('2d');
         ctx.drawImage(imgEl, 0, 0);
-        
+
         ctx.font = '16px monospace';
         ctx.fillStyle = '#38bdf8';
-        ctx.fillText(`HYDRA MISSION CONTROL // ESP32-CAM [${r ? r.ip : 'LIVE'}]`, 14, 28);
+        ctx.fillText(`AEGIS MISSION CONTROL // ESP32-CAM [${r ? r.ip : 'LIVE'}]`, 14, 28);
         ctx.fillText(new Date().toISOString(), 14, 48);
 
         const a = document.createElement('a');
@@ -387,7 +387,7 @@ const HYDRA_ESP32 = {
         a.href = c.toDataURL('image/jpeg', 0.92);
         a.click();
         return;
-      } catch (e) {}
+      } catch (e) { }
     }
 
     if (canvas) {
@@ -403,7 +403,7 @@ const HYDRA_ESP32 = {
   sendVehicleControl(roverId, command) {
     this.currentCommand = command;
     const r = rovers.find(x => x.id === roverId && x.isEsp32);
-    console.log(`[HYDRA ESP32] Motor command to ${r ? r.name : roverId}: ${command}`);
+    console.log(`[AEGIS ESP32] Motor command to ${r ? r.name : roverId}: ${command}`);
 
     // Update live HUD driving badge
     const badge = document.getElementById('espDriveHudBadge');
@@ -433,18 +433,18 @@ const HYDRA_ESP32 = {
 
     if (r && r.ip) {
       // 1. Standard ESP32 Web Server Action
-      fetch(`http://${r.ip}/action?go=${encodeURIComponent(command)}`, { mode: 'no-cors' }).catch(() => {});
-      
+      fetch(`http://${r.ip}/action?go=${encodeURIComponent(command)}`, { mode: 'no-cors' }).catch(() => { });
+
       // 2. Standard Arduino Web Car Val (1=Forward, 2=Backward, 3=Left, 4=Right, 0=Stop)
       const carValMap = { forward: 1, backward: 2, left: 3, right: 4, stop: 0 };
       if (carValMap[command] !== undefined) {
-        fetch(`http://${r.ip}/car?val=${carValMap[command]}`, { mode: 'no-cors' }).catch(() => {});
+        fetch(`http://${r.ip}/car?val=${carValMap[command]}`, { mode: 'no-cors' }).catch(() => { });
       }
 
       // 3. Simple Single-Char Direction Endpoint (F, B, L, R, S)
       const charMap = { forward: 'F', backward: 'B', left: 'L', right: 'R', stop: 'S' };
       if (charMap[command]) {
-        fetch(`http://${r.ip}/cmd?dir=${charMap[command]}`, { mode: 'no-cors' }).catch(() => {});
+        fetch(`http://${r.ip}/cmd?dir=${charMap[command]}`, { mode: 'no-cors' }).catch(() => { });
       }
     }
   }
@@ -462,19 +462,19 @@ if (typeof window !== 'undefined') {
 
     const key = e.key.toLowerCase();
     if (key === 'w' || key === 'arrowup') {
-      HYDRA_ESP32.sendVehicleControl(r.id, 'forward');
+      AEGIS_ESP32.sendVehicleControl(r.id, 'forward');
     } else if (key === 's' || key === 'arrowdown') {
-      HYDRA_ESP32.sendVehicleControl(r.id, 'backward');
+      AEGIS_ESP32.sendVehicleControl(r.id, 'backward');
     } else if (key === 'a' || key === 'arrowleft') {
-      HYDRA_ESP32.sendVehicleControl(r.id, 'left');
+      AEGIS_ESP32.sendVehicleControl(r.id, 'left');
     } else if (key === 'd' || key === 'arrowright') {
-      HYDRA_ESP32.sendVehicleControl(r.id, 'right');
+      AEGIS_ESP32.sendVehicleControl(r.id, 'right');
     } else if (key === ' ' || key === 'x') {
-      HYDRA_ESP32.sendVehicleControl(r.id, 'stop');
+      AEGIS_ESP32.sendVehicleControl(r.id, 'stop');
     } else if (key === 'f') {
-      HYDRA_ESP32.toggleFlashLed(r.id);
+      AEGIS_ESP32.toggleFlashLed(r.id);
     } else if (key === 'c') {
-      HYDRA_ESP32.captureSnapshot(r.id);
+      AEGIS_ESP32.captureSnapshot(r.id);
     }
   });
 
@@ -486,7 +486,7 @@ if (typeof window !== 'undefined') {
 
     const key = e.key.toLowerCase();
     if (['w', 's', 'a', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) {
-      HYDRA_ESP32.sendVehicleControl(r.id, 'stop');
+      AEGIS_ESP32.sendVehicleControl(r.id, 'stop');
     }
   });
 }
@@ -494,6 +494,6 @@ if (typeof window !== 'undefined') {
 // Auto-load saved ESP32 devices when script executes
 if (typeof window !== 'undefined') {
   window.addEventListener('DOMContentLoaded', () => {
-    HYDRA_ESP32.loadSavedDevices();
+    AEGIS_ESP32.loadSavedDevices();
   });
 }

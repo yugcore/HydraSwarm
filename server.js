@@ -1,5 +1,5 @@
 /**
- * HYDRA Mission Control - Backend API & Static Server
+ * AEGIS Mission Control - Backend API & Static Server
  * Built with native Node.js (Zero external dependencies required)
  */
 
@@ -39,7 +39,7 @@ const fleetState = [
 // Helper to fetch external JSON over HTTPS
 function fetchHttpsJson(url) {
   return new Promise((resolve, reject) => {
-    https.get(url, { headers: { 'User-Agent': 'HYDRA-Mission-Control/2.0' } }, (res) => {
+    https.get(url, { headers: { 'User-Agent': 'AEGIS-Mission-Control/2.0' } }, (res) => {
       if (res.statusCode < 200 || res.statusCode >= 300) {
         return reject(new Error(`HTTPS status ${res.statusCode}`));
       }
@@ -70,7 +70,7 @@ const server = http.createServer(async (req, res) => {
   // ---------- REST API ENDPOINTS ----------
   if (pathname === '/api/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ status: 'operational', timestamp: new Date().toISOString(), server: 'HYDRA Core v2.0' }));
+    return res.end(JSON.stringify({ status: 'operational', timestamp: new Date().toISOString(), server: 'AEGIS Core v2.0' }));
   }
 
   if (pathname === '/api/rovers') {
@@ -85,7 +85,7 @@ const server = http.createServer(async (req, res) => {
       try {
         const payload = JSON.parse(body);
         const { roverIds = [], hazardId } = payload;
-        
+
         fleetState.forEach(r => {
           if (roverIds.includes(r.id)) {
             r.status = 'Deployed';
@@ -94,7 +94,7 @@ const server = http.createServer(async (req, res) => {
           }
         });
 
-        console.log(`[HYDRA Backend] Dispatched rovers ${roverIds.join(', ')} to hazard ${hazardId}`);
+        console.log(`[AEGIS Backend] Dispatched rovers ${roverIds.join(', ')} to hazard ${hazardId}`);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true, dispatched: roverIds, hazardId, timestamp: new Date().toISOString() }));
       } catch (err) {
@@ -297,7 +297,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     const durationMs = Date.now() - startTime;
-    console.log(`[HYDRA Network Scanner] Probed ${totalHostsScanned} hosts across ${SCAN_PORTS.length} ports in ${durationMs}ms. Found ${realFoundDevices.length} live devices.`);
+    console.log(`[AEGIS Network Scanner] Probed ${totalHostsScanned} hosts across ${SCAN_PORTS.length} ports in ${durationMs}ms. Found ${realFoundDevices.length} live devices.`);
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({
@@ -381,7 +381,7 @@ const server = http.createServer(async (req, res) => {
 
   // ---------- STATIC FILE SERVING ----------
   let filePath = path.join(PUBLIC_DIR, pathname === '/' ? 'index.html' : pathname);
-  
+
   // Security check: prevent directory traversal
   if (!filePath.startsWith(PUBLIC_DIR)) {
     res.writeHead(403);
@@ -406,20 +406,20 @@ let currentPort = parseInt(PORT, 10);
 
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
-    console.warn(`[HYDRA Server] Port ${currentPort} is currently in use (e.g. by another server or Python).`);
+    console.warn(`[AEGIS Server] Port ${currentPort} is currently in use (e.g. by another server or Python).`);
     currentPort += 1;
-    console.log(`[HYDRA Server] Retrying on port ${currentPort}...`);
+    console.log(`[AEGIS Server] Retrying on port ${currentPort}...`);
     setTimeout(() => {
       server.listen(currentPort);
     }, 200);
   } else {
-    console.error('[HYDRA Server] Unexpected server error:', err);
+    console.error('[AEGIS Server] Unexpected server error:', err);
   }
 });
 
 server.listen(currentPort, () => {
   console.log(`=================================================`);
-  console.log(`  HYDRA MISSION CONTROL SERVER ACTIVE`);
+  console.log(`  AEGIS MISSION CONTROL SERVER ACTIVE`);
   console.log(`  URL: http://localhost:${currentPort}`);
   console.log(`  Live APIs: USGS Earthquakes, NASA EONET, NOAA`);
   console.log(`  Fleet Endpoints: /api/rovers, /api/rovers/dispatch`);

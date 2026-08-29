@@ -1,9 +1,9 @@
 /* =========================================================
-   HYDRA - MAIN APP CONTROLLER
+   AEGIS - MAIN APP CONTROLLER
 ========================================================= */
 
 const state = {
-  theme: (typeof localStorage !== 'undefined' && localStorage.getItem('hydra_theme')) || 'dark', // 'dark' | 'light'
+  theme: (typeof localStorage !== 'undefined' && localStorage.getItem('aegis_theme')) || 'dark', // 'dark' | 'light'
   mode: 'simulation', // 'simulation' | 'live'
   selectedStationId: 'guwahati',
   stationModalOpen: false,
@@ -30,7 +30,7 @@ function toggleTheme() {
     document.documentElement.setAttribute('data-theme', state.theme);
   }
   if (typeof localStorage !== 'undefined') {
-    localStorage.setItem('hydra_theme', state.theme);
+    localStorage.setItem('aegis_theme', state.theme);
   }
   render();
 }
@@ -70,7 +70,7 @@ async function syncLiveHazards() {
   if (state.mode === 'simulation') {
     const activeStation = (typeof getStationById === 'function')
       ? getStationById(state.selectedStationId || currentStationId || 'guwahati')
-      : HYDRA_STATIONS[0];
+      : AEGIS_STATIONS[0];
     hazards = [...activeStation.hazards];
     state.lastUpdate = new Date();
     render();
@@ -78,17 +78,17 @@ async function syncLiveHazards() {
   }
 
   state.isSyncing = true;
-  console.log('[HYDRA] Syncing live regional hazards from USGS India & Open-Meteo...');
-  
+  console.log('[AEGIS] Syncing live regional hazards from USGS India & Open-Meteo...');
+
   try {
-    const liveData = await HYDRA_API.fetchAllLiveHazards();
+    const liveData = await AEGIS_API.fetchAllLiveHazards();
     if (liveData && liveData.length > 0) {
       hazards = liveData;
       state.lastUpdate = new Date();
-      console.log(`[HYDRA] Successfully loaded ${hazards.length} live disaster alerts.`);
+      console.log(`[AEGIS] Successfully loaded ${hazards.length} live disaster alerts.`);
     }
   } catch (err) {
-    console.error('[HYDRA] Hazard sync error:', err);
+    console.error('[AEGIS] Hazard sync error:', err);
   } finally {
     state.isSyncing = false;
     render();
@@ -112,21 +112,21 @@ async function confirmDeploy() {
   const roverIds = Array.from(state.deployChecked);
 
   roverIds.forEach(id => {
-    HYDRA_TELEMETRY.startMission(id, hazardId);
+    AEGIS_TELEMETRY.startMission(id, hazardId);
   });
 
   h.status = 'Active';
   state.deployModalHazardId = null;
   state.deployChecked = new Set();
   state.lastUpdate = new Date();
-  
+
   // Focus and zoom the map onto this new target deployment
   state.activeTargetId = hazardId;
   const targetEnvelope = getTargetEnvelope(hazardId);
   animateViewBoxTo(targetEnvelope);
 
   // Dispatch via API if backend is available
-  await HYDRA_API.dispatchRoverMission(roverIds, hazardId);
+  await AEGIS_API.dispatchRoverMission(roverIds, hazardId);
 
   render();
 }
@@ -135,7 +135,7 @@ async function confirmDeploy() {
    MAP CLICK TO AIRDROP REINFORCEMENTS
 ========================================================= */
 function handleMapDropClick(e) {
-  if (typeof HYDRA_MAP_INTERACTIONS !== 'undefined' && HYDRA_MAP_INTERACTIONS.hasDragged) return;
+  if (typeof AEGIS_MAP_INTERACTIONS !== 'undefined' && AEGIS_MAP_INTERACTIONS.hasDragged) return;
   if (!state.dropDesignationActive && state.leftPanelTab !== 'reinforcements') return;
   if (e.target.closest('.map-toolbar') || e.target.closest('.map-controls') || e.target.closest('.map-legend') || e.target.closest('button') || e.target.closest('.rover-info-panel')) return;
 
@@ -180,7 +180,7 @@ function handleMapDropClick(e) {
     hazardId: clickedHazard ? clickedHazard.id : null
   };
 
-  const dropRecord = HYDRA_TELEMETRY.startHeavyAirliftMission(roverToDispatch.id, targetLocation, roverToDispatch.payloadId || 'medikit_trauma');
+  const dropRecord = AEGIS_TELEMETRY.startHeavyAirliftMission(roverToDispatch.id, targetLocation, roverToDispatch.payloadId || 'medikit_trauma');
   if (dropRecord) {
     state.activeTargetId = dropRecord.id;
     state.dropDesignationActive = false;
@@ -234,8 +234,8 @@ document.addEventListener('click', (e) => {
       render();
       break;
     case 'select-station':
-      if (typeof switchHydraStation === 'function') {
-        switchHydraStation(id);
+      if (typeof switchAegisStation === 'function') {
+        switchAegisStation(id);
       }
       state.stationModalOpen = false;
       render();
@@ -257,9 +257,9 @@ document.addEventListener('click', (e) => {
         // In simulation mode, reload active station's authentic simulated fleet and hazards
         const activeStation = (typeof getStationById === 'function')
           ? getStationById(state.selectedStationId || currentStationId || 'guwahati')
-          : HYDRA_STATIONS[0];
-        if (typeof switchHydraStation === 'function') {
-          switchHydraStation(activeStation.id);
+          : AEGIS_STATIONS[0];
+        if (typeof switchAegisStation === 'function') {
+          switchAegisStation(activeStation.id);
         }
       }
       render();
@@ -279,16 +279,16 @@ document.addEventListener('click', (e) => {
       syncLiveHazards();
       break;
     case 'map-zoom-in':
-      if (typeof HYDRA_MAP_INTERACTIONS !== 'undefined') HYDRA_MAP_INTERACTIONS.zoomBy(0.88);
+      if (typeof AEGIS_MAP_INTERACTIONS !== 'undefined') AEGIS_MAP_INTERACTIONS.zoomBy(0.88);
       break;
     case 'map-zoom-out':
-      if (typeof HYDRA_MAP_INTERACTIONS !== 'undefined') HYDRA_MAP_INTERACTIONS.zoomBy(1.14);
+      if (typeof AEGIS_MAP_INTERACTIONS !== 'undefined') AEGIS_MAP_INTERACTIONS.zoomBy(1.14);
       break;
     case 'map-reset-zoom':
-      if (typeof HYDRA_MAP_INTERACTIONS !== 'undefined') HYDRA_MAP_INTERACTIONS.reset();
+      if (typeof AEGIS_MAP_INTERACTIONS !== 'undefined') AEGIS_MAP_INTERACTIONS.reset();
       break;
     case 'select-hazard':
-      if (typeof HYDRA_MAP_INTERACTIONS !== 'undefined' && HYDRA_MAP_INTERACTIONS.hasDragged) break;
+      if (typeof AEGIS_MAP_INTERACTIONS !== 'undefined' && AEGIS_MAP_INTERACTIONS.hasDragged) break;
       if (state.selectedHazardId === id) {
         state.selectedHazardId = null;
       } else {
@@ -300,7 +300,7 @@ document.addEventListener('click', (e) => {
       render();
       break;
     case 'select-rover': {
-      if (typeof HYDRA_MAP_INTERACTIONS !== 'undefined' && HYDRA_MAP_INTERACTIONS.hasDragged) break;
+      if (typeof AEGIS_MAP_INTERACTIONS !== 'undefined' && AEGIS_MAP_INTERACTIONS.hasDragged) break;
       const r = byId(rovers, id);
       if (r && (r.status === 'Offline' || r.status === 'Unavailable')) {
         break;
@@ -359,7 +359,7 @@ document.addEventListener('click', (e) => {
       break;
     case 'focus-drop-target': {
       const hr = (typeof heavyRovers !== 'undefined') ? heavyRovers.find(r => r.id === id) : null;
-      const telem = hr ? HYDRA_TELEMETRY.getRoverTelemetry(hr.id) : null;
+      const telem = hr ? AEGIS_TELEMETRY.getRoverTelemetry(hr.id) : null;
       if (telem && telem.dropId) {
         state.activeTargetId = telem.dropId;
         const envelope = getTargetEnvelope(telem.dropId);
@@ -426,7 +426,7 @@ document.addEventListener('click', (e) => {
       const roverId = t.dataset.rover;
       const hazardId = t.dataset.hazard;
       if (roverId && hazardId) {
-        HYDRA_TELEMETRY.startMission(roverId, hazardId);
+        AEGIS_TELEMETRY.startMission(roverId, hazardId);
         const h = byId(hazards, hazardId);
         if (h) h.status = 'Active';
         state.activeTargetId = hazardId;
@@ -441,7 +441,7 @@ document.addEventListener('click', (e) => {
       const available = rovers.filter(r => r.status === 'Ready');
       if (hazardId && available.length > 0) {
         available.forEach(r => {
-          HYDRA_TELEMETRY.startMission(r.id, hazardId);
+          AEGIS_TELEMETRY.startMission(r.id, hazardId);
         });
         const h = byId(hazards, hazardId);
         if (h) h.status = 'Active';
@@ -463,24 +463,24 @@ document.addEventListener('click', (e) => {
       render();
       break;
     case 'switch-esp32-tab':
-      if (typeof HYDRA_ESP32 !== 'undefined') {
-        HYDRA_ESP32.activeTab = t.dataset.tab || 'scanner';
+      if (typeof AEGIS_ESP32 !== 'undefined') {
+        AEGIS_ESP32.activeTab = t.dataset.tab || 'scanner';
         render();
       }
       break;
     case 'scan-esp32':
-      if (typeof HYDRA_ESP32 !== 'undefined') {
-        HYDRA_ESP32.scanNetwork();
+      if (typeof AEGIS_ESP32 !== 'undefined') {
+        AEGIS_ESP32.scanNetwork();
       }
       break;
     case 'connect-esp32-discovered':
-      if (typeof HYDRA_ESP32 !== 'undefined') {
-        HYDRA_ESP32.connectDiscovered(id);
+      if (typeof AEGIS_ESP32 !== 'undefined') {
+        AEGIS_ESP32.connectDiscovered(id);
       }
       break;
     case 'connect-all-esp32':
-      if (typeof HYDRA_ESP32 !== 'undefined') {
-        HYDRA_ESP32.connectAllDiscovered();
+      if (typeof AEGIS_ESP32 !== 'undefined') {
+        AEGIS_ESP32.connectAllDiscovered();
       }
       break;
     case 'set-manual-type': {
@@ -495,7 +495,7 @@ document.addEventListener('click', (e) => {
       const ip = (document.getElementById('manualEspIp')?.value || '192.168.4.1').trim();
       const port = document.getElementById('manualEspPort')?.value || 81;
       const path = document.getElementById('manualEspPath')?.value || '/stream';
-      const streamUrl = HYDRA_ESP32.buildStreamUrl(ip, port, path);
+      const streamUrl = AEGIS_ESP32.buildStreamUrl(ip, port, path);
       const screen = document.getElementById('espTestScreen');
       if (screen) {
         screen.innerHTML = `
@@ -520,43 +520,43 @@ document.addEventListener('click', (e) => {
       const port = document.getElementById('manualEspPort')?.value || 81;
       const streamPath = (document.getElementById('manualEspPath')?.value || '/stream').trim();
 
-      if (typeof HYDRA_ESP32 !== 'undefined') {
-        HYDRA_ESP32.connectManual({ name, type, ip, port, streamPath });
+      if (typeof AEGIS_ESP32 !== 'undefined') {
+        AEGIS_ESP32.connectManual({ name, type, ip, port, streamPath });
       }
       break;
     }
     case 'disconnect-esp32':
-      if (typeof HYDRA_ESP32 !== 'undefined') {
-        HYDRA_ESP32.disconnectRover(id);
+      if (typeof AEGIS_ESP32 !== 'undefined') {
+        AEGIS_ESP32.disconnectRover(id);
       }
       break;
     case 'clear-all-esp32':
-      if (typeof HYDRA_ESP32 !== 'undefined') {
-        HYDRA_ESP32.clearAllEsp32();
+      if (typeof AEGIS_ESP32 !== 'undefined') {
+        AEGIS_ESP32.clearAllEsp32();
         render();
       }
       break;
     case 'toggle-esp32-flash':
-      if (typeof HYDRA_ESP32 !== 'undefined') {
-        HYDRA_ESP32.toggleFlashLed(id);
+      if (typeof AEGIS_ESP32 !== 'undefined') {
+        AEGIS_ESP32.toggleFlashLed(id);
       }
       break;
     case 'capture-esp32-snapshot':
-      if (typeof HYDRA_ESP32 !== 'undefined') {
-        HYDRA_ESP32.captureSnapshot(id);
+      if (typeof AEGIS_ESP32 !== 'undefined') {
+        AEGIS_ESP32.captureSnapshot(id);
       }
       break;
     case 'cycle-esp32-res': {
       const resList = ['QVGA', 'VGA', 'SVGA', 'XGA', 'HD'];
-      const current = HYDRA_ESP32.currentResolution || 'SVGA';
+      const current = AEGIS_ESP32.currentResolution || 'SVGA';
       const nextIdx = (resList.indexOf(current) + 1) % resList.length;
       const nextRes = resList[nextIdx];
-      HYDRA_ESP32.setResolution(id, nextRes);
+      AEGIS_ESP32.setResolution(id, nextRes);
       break;
     }
     case 'esp-drive':
-      if (typeof HYDRA_ESP32 !== 'undefined') {
-        HYDRA_ESP32.sendVehicleControl(t.dataset.id, t.dataset.cmd);
+      if (typeof AEGIS_ESP32 !== 'undefined') {
+        AEGIS_ESP32.sendVehicleControl(t.dataset.id, t.dataset.cmd);
       }
       break;
   }
@@ -576,7 +576,7 @@ setInterval(() => {
 setInterval(() => {
   const hasMovingRovers = typeof rovers !== 'undefined' && rovers.some(r => r.status === 'Deployed' || r.status === 'On Site');
   const hasMovingHeavy = typeof heavyRovers !== 'undefined' && heavyRovers.some(r => r.status === 'Deployed' || r.status === 'Returning');
-  
+
   if (hasMovingRovers || hasMovingHeavy) {
     const mapWrap = document.querySelector('.map-wrap');
     if (mapWrap) {
@@ -649,14 +649,14 @@ function init() {
   if (typeof document !== 'undefined') {
     document.documentElement.setAttribute('data-theme', state.theme);
   }
-  if (typeof HYDRA_ESP32 !== 'undefined' && HYDRA_ESP32.loadSavedDevices) {
-    HYDRA_ESP32.loadSavedDevices();
+  if (typeof AEGIS_ESP32 !== 'undefined' && AEGIS_ESP32.loadSavedDevices) {
+    AEGIS_ESP32.loadSavedDevices();
   }
-  if (typeof switchHydraStation === 'function') {
-    switchHydraStation(state.selectedStationId || 'guwahati');
+  if (typeof switchAegisStation === 'function') {
+    switchAegisStation(state.selectedStationId || 'guwahati');
   }
-  if (typeof HYDRA_MAP_INTERACTIONS !== 'undefined') {
-    HYDRA_MAP_INTERACTIONS.init();
+  if (typeof AEGIS_MAP_INTERACTIONS !== 'undefined') {
+    AEGIS_MAP_INTERACTIONS.init();
   }
   render();
   if (state.mode === 'live') {

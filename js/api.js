@@ -1,8 +1,8 @@
 /* =========================================================
-   HYDRA - LIVE API CLIENT & DATA NORMALIZATION LAYER
+   AEGIS - LIVE API CLIENT & DATA NORMALIZATION LAYER
 ========================================================= */
 
-const HYDRA_API = {
+const AEGIS_API = {
   endpoints: {
     usgsEarthquakes: 'https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&minmagnitude=2.5&minlatitude=6&maxlatitude=38&minlongitude=68&maxlongitude=98',
     usgsGlobal: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson',
@@ -54,7 +54,7 @@ const HYDRA_API = {
         const [lon, lat, depth] = f.geometry.coordinates;
         const mapCoords = this.projectLatLonToMap(lat, lon);
         const mag = props.mag || 0;
-        
+
         let severity = 'low';
         if (mag >= 5.0) severity = 'severe';
         else if (mag >= 4.0) severity = 'moderate';
@@ -81,7 +81,7 @@ const HYDRA_API = {
         };
       });
     } catch (err) {
-      console.warn('[HYDRA API] USGS Earthquakes fetch failed:', err.message);
+      console.warn('[AEGIS API] USGS Earthquakes fetch failed:', err.message);
       this.status.usgs = 'error';
       return [];
     }
@@ -110,7 +110,7 @@ const HYDRA_API = {
         const [lon, lat] = lastGeo && Array.isArray(lastGeo.coordinates) && typeof lastGeo.coordinates[0] === 'number'
           ? lastGeo.coordinates
           : [-119.5, 36.8]; // fallback default region
-        
+
         const mapCoords = this.projectLatLonToMap(lat, lon);
         const dateObj = lastGeo?.date ? new Date(lastGeo.date) : new Date();
         const timeStr = dateObj.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
@@ -135,7 +135,7 @@ const HYDRA_API = {
         };
       });
     } catch (err) {
-      console.warn('[HYDRA API] NASA EONET fetch failed:', err.message);
+      console.warn('[AEGIS API] NASA EONET fetch failed:', err.message);
       this.status.nasa = 'error';
       return [];
     }
@@ -163,7 +163,7 @@ const HYDRA_API = {
         }
         const mapCoords = this.projectLatLonToMap(lat, lon);
         const eventName = props.event || 'Severe Weather Warning';
-        
+
         let type = 'Flood';
         if (/fire|red flag/i.test(eventName)) type = 'Wildfire';
         else if (/hurricane|cyclone|storm|wind/i.test(eventName)) type = 'Cyclone';
@@ -193,7 +193,7 @@ const HYDRA_API = {
         };
       });
     } catch (err) {
-      console.warn('[HYDRA API] NOAA Weather Alerts fetch failed:', err.message);
+      console.warn('[AEGIS API] NOAA Weather Alerts fetch failed:', err.message);
       this.status.noaa = 'error';
       return [];
     }
@@ -233,7 +233,7 @@ const HYDRA_API = {
             });
           }
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     const [quakes, nasaEvents, noaaAlerts] = await Promise.all([
@@ -246,7 +246,7 @@ const HYDRA_API = {
     this.status.lastSync = new Date();
 
     if (combined.length === 0) {
-      console.info('[HYDRA API] Fallback to station operational dataset.');
+      console.info('[AEGIS API] Fallback to station operational dataset.');
       return (activeStation && activeStation.hazards) ? activeStation.hazards : fallbackHazards;
     }
 
@@ -281,7 +281,7 @@ const HYDRA_API = {
       if (!res.ok) throw new Error(`Dispatch HTTP ${res.status}`);
       return await res.json();
     } catch (err) {
-      console.warn('[HYDRA API] Local backend dispatch offline, applying in client memory.');
+      console.warn('[AEGIS API] Local backend dispatch offline, applying in client memory.');
       return { success: true, mode: 'client-simulation' };
     }
   }

@@ -1,5 +1,5 @@
 /* =========================================================
-   HYDRA - LIVE CAMERA FEED & MULTI-CAM GRID (ESP32 & SQUAD)
+   AEGIS - LIVE CAMERA FEED & MULTI-CAM GRID (ESP32 & SQUAD)
 ========================================================= */
 
 let feedRAF = null;
@@ -8,7 +8,7 @@ function renderLiveFeed() {
   const isLive = state.mode === 'live';
   // The live video feed section strictly streams REAL physical WiFi hardware (zero simulated units)
   const streamableRovers = rovers.filter(rv => rv.isEsp32);
-  
+
   // If in grid mode or multiple real ESP32 rovers are active and no specific single rover chosen, default to grid
   const isGrid = (state.feedViewMode === 'grid' || (!state.liveFeedRoverId && streamableRovers.length > 1)) && streamableRovers.length > 1;
   const isExpanded = !!state.feedExpanded;
@@ -75,7 +75,7 @@ function renderLiveFeed() {
     const gridCols = streamableRovers.length >= 3 ? 'grid-4' : 'grid-2';
     const gridCards = streamableRovers.slice(0, 4).map(rv => {
       const isEsp = !!rv.isEsp32;
-      const telem = HYDRA_TELEMETRY.getRoverTelemetry(rv.id);
+      const telem = AEGIS_TELEMETRY.getRoverTelemetry(rv.id);
       return `
       <div class="grid-cam-tile" data-id="${rv.id}">
         <div class="grid-cam-head">
@@ -152,16 +152,16 @@ function renderLiveFeed() {
   if (!r) return '';
 
   const h = r.hazardId ? byId(hazards, r.hazardId) : null;
-  const telem = HYDRA_TELEMETRY.getRoverTelemetry(r.id);
-  const etaText = HYDRA_TELEMETRY.formatEta(telem.etaSeconds);
+  const telem = AEGIS_TELEMETRY.getRoverTelemetry(r.id);
+  const etaText = AEGIS_TELEMETRY.formatEta(telem.etaSeconds);
   const isEsp = !!r.isEsp32;
 
   // Header controls for ESP32 devices
   const espControls = isEsp ? `
     <div class="lf-esp-controls">
-      <button class="lf-ctrl-btn ${HYDRA_ESP32.flashLedActive ? 'active' : ''}" data-action="toggle-esp32-flash" data-id="${r.id}" title="Toggle Flashlight LED (GPIO 4)">
+      <button class="lf-ctrl-btn ${AEGIS_ESP32.flashLedActive ? 'active' : ''}" data-action="toggle-esp32-flash" data-id="${r.id}" title="Toggle Flashlight LED (GPIO 4)">
         <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-        <span>${HYDRA_ESP32.flashLedActive ? 'Flash ON' : 'Flash OFF'}</span>
+        <span>${AEGIS_ESP32.flashLedActive ? 'Flash ON' : 'Flash OFF'}</span>
       </button>
       <button class="lf-ctrl-btn" data-action="capture-esp32-snapshot" data-id="${r.id}" title="Capture High-Res Snapshot">
         <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="13" r="4"/><path d="M5 7h2l2-3h6l2 3h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z"/></svg>
@@ -169,7 +169,7 @@ function renderLiveFeed() {
       </button>
       <button class="lf-ctrl-btn" data-action="cycle-esp32-res" data-id="${r.id}" title="Change Camera Resolution">
         <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
-        <span>${HYDRA_ESP32.currentResolution || 'SVGA'}</span>
+        <span>${AEGIS_ESP32.currentResolution || 'SVGA'}</span>
       </button>
     </div>` : '';
 
@@ -221,7 +221,7 @@ function renderLiveFeed() {
             ${isEsp ? `BATT ${r.battery}% &middot; ${r.type === 'aerial' ? 'FLIGHT SENSORS OK' : 'TERRAIN DRIVE OK'} &middot; HDG ${telem.heading || 0}°` : `LAT ${telem.lat.toFixed(4)} &middot; LON ${telem.lon.toFixed(4)}`}
           </span>
           <span class="lf-tag">
-            ${isEsp ? `${HYDRA_ESP32.currentResolution || 'SVGA (800x600)'} &middot; 28 FPS &middot; 2.4GHz WiFi` : `HDG ${telem.heading}° &middot; ${h ? ('TGT ' + h.name.split(',')[0]).toUpperCase() : 'PATROL'} &middot; ETA ${etaText}`}
+            ${isEsp ? `${AEGIS_ESP32.currentResolution || 'SVGA (800x600)'} &middot; 28 FPS &middot; 2.4GHz WiFi` : `HDG ${telem.heading}° &middot; ${h ? ('TGT ' + h.name.split(',')[0]).toUpperCase() : 'PATROL'} &middot; ETA ${etaText}`}
           </span>
         </div>
       </div>
@@ -348,7 +348,7 @@ function startFeedAnim() {
     ctx.restore();
 
     // ESP32-CAM subtle flash LED bloom effect if LED is active
-    if (HYDRA_ESP32.flashLedActive) {
+    if (AEGIS_ESP32.flashLedActive) {
       const flashGrad = ctx.createRadialGradient(w / 2, hh / 2, 10, w / 2, hh / 2, w * 0.6);
       flashGrad.addColorStop(0, 'rgba(255, 255, 230, 0.15)');
       flashGrad.addColorStop(1, 'rgba(255, 255, 230, 0)');

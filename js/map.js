@@ -1,5 +1,5 @@
 /* =========================================================
-   HYDRA - TACTICAL GIS MAP WITH TARGET FOCUSING & VIEWBOX ZOOM
+   AEGIS - TACTICAL GIS MAP WITH TARGET FOCUSING & VIEWBOX ZOOM
 ========================================================= */
 
 // ViewBox animation state
@@ -9,15 +9,15 @@ let currentViewBox = { x: 0, y: 0, w: 1000, h: 640 };
 function resetMapViewBox() {
   if (viewBoxAnimationId) cancelAnimationFrame(viewBoxAnimationId);
   currentViewBox = { x: 0, y: 0, w: 1000, h: 640 };
-  if (typeof HYDRA_MAP_INTERACTIONS !== 'undefined') {
-    HYDRA_MAP_INTERACTIONS.applyViewBox();
+  if (typeof AEGIS_MAP_INTERACTIONS !== 'undefined') {
+    AEGIS_MAP_INTERACTIONS.applyViewBox();
   }
 }
 
 /* =========================================================
-   HYDRA INTERACTIVE PAN & ZOOM ENGINE
+   AEGIS INTERACTIVE PAN & ZOOM ENGINE
 ========================================================= */
-const HYDRA_MAP_INTERACTIONS = {
+const AEGIS_MAP_INTERACTIONS = {
   isPanning: false,
   hasDragged: false,
   startMouse: { x: 0, y: 0 },
@@ -36,7 +36,7 @@ const HYDRA_MAP_INTERACTIONS = {
 
     // Non-passive wheel listener on map-wrap container
     document.addEventListener('wheel', (e) => this.onWheel(e), { passive: false });
-    
+
     // Double click to zoom in
     document.addEventListener('dblclick', (e) => this.onDblClick(e));
 
@@ -228,7 +228,7 @@ const HYDRA_MAP_INTERACTIONS = {
 function getActiveTargets() {
   const targets = [];
   const deployedHazardIds = new Set();
-  
+
   if (typeof rovers !== 'undefined') {
     rovers.forEach(r => {
       if ((r.status === 'Deployed' || r.status === 'On Site') && r.hazardId) {
@@ -277,7 +277,7 @@ function getTargetEnvelope(targetId) {
       const hr = (typeof heavyRovers !== 'undefined') ? heavyRovers.find(r => r.id === dt.roverId) : null;
       const pts = [{ x: dt.x, y: dt.y }];
       if (hr) {
-        const telem = HYDRA_TELEMETRY.getRoverTelemetry(hr.id);
+        const telem = AEGIS_TELEMETRY.getRoverTelemetry(hr.id);
         if (telem) pts.push({ x: telem.x, y: telem.y });
         if (hr.home) pts.push({ x: hr.home.x, y: hr.home.y });
       }
@@ -325,7 +325,7 @@ function getTargetEnvelope(targetId) {
   const pts = [{ x: h.x, y: h.y }];
 
   assignedRovers.forEach(r => {
-    const telem = HYDRA_TELEMETRY.getRoverTelemetry(r.id);
+    const telem = AEGIS_TELEMETRY.getRoverTelemetry(r.id);
     if (telem) pts.push({ x: telem.x, y: telem.y });
     if (r.home) pts.push({ x: r.home.x, y: r.home.y });
   });
@@ -429,7 +429,7 @@ function renderMapViewSelector() {
     const isDrop = h.targetType === 'drop';
     const assignedCount = isDrop ? 1 : rovers.filter(r => r.hazardId === h.id).length;
     const label = isDrop ? `DROP: ${h.name.split(' — ')[0]}` : (activeTargets.length === 1 ? `TARGET: ${h.name.split(' — ')[0].split(',')[0]}` : `TARGET ${idx + 1}: ${h.name.split(' — ')[0].split(',')[0]}`);
-    
+
     return `
     <button class="map-view-btn target-btn ${isFocused ? 'active' : ''} ${isDrop ? 'target-btn-drop' : ''}" data-action="set-map-view" data-target="${h.id}">
       ${label}
@@ -449,8 +449,8 @@ function renderTargetHudOverlay() {
     const dt = (typeof activeDropTargets !== 'undefined') ? activeDropTargets.find(d => d.id === state.activeTargetId) : null;
     if (!dt) return '';
     const hr = (typeof heavyRovers !== 'undefined') ? heavyRovers.find(r => r.id === dt.roverId) : null;
-    const telem = hr ? HYDRA_TELEMETRY.getRoverTelemetry(hr.id) : null;
-    const etaText = telem ? HYDRA_TELEMETRY.formatEta(telem.etaSeconds) : '—';
+    const telem = hr ? AEGIS_TELEMETRY.getRoverTelemetry(hr.id) : null;
+    const etaText = telem ? AEGIS_TELEMETRY.formatEta(telem.etaSeconds) : '—';
     const progressPct = telem ? Math.round(telem.t * 100) : (dt.status === 'delivered' ? 100 : 0);
 
     return `
@@ -495,8 +495,8 @@ function renderTargetHudOverlay() {
 
   // Get leader rover telemetry
   const primaryRover = assignedRovers[0];
-  const telem = HYDRA_TELEMETRY.getRoverTelemetry(primaryRover.id);
-  const etaText = HYDRA_TELEMETRY.formatEta(telem.etaSeconds);
+  const telem = AEGIS_TELEMETRY.getRoverTelemetry(primaryRover.id);
+  const etaText = AEGIS_TELEMETRY.formatEta(telem.etaSeconds);
   const progressPct = Math.round(telem.t * 100);
 
   return `
@@ -541,9 +541,9 @@ function renderMapSvg() {
   const roverFill = isLight ? '#ffffff' : '#1a2230';
   const roverStroke = isLight ? '#334155' : '#cbd5e1';
 
-  const activeStation = (typeof getStationById === 'function') 
+  const activeStation = (typeof getStationById === 'function')
     ? getStationById(state.selectedStationId || currentStationId || 'guwahati')
-    : HYDRA_STATIONS[0];
+    : AEGIS_STATIONS[0];
 
   const vb = currentViewBox;
 
@@ -648,7 +648,7 @@ function renderMapSvg() {
   const isLive = state.mode === 'live';
   // In live mode, exclusively display real hardware units (zero simulated rovers)
   const activeFleet = isLive ? rovers.filter(r => r.isEsp32) : rovers;
-  const activeHeavyFleet = isLive 
+  const activeHeavyFleet = isLive
     ? ((typeof heavyRovers !== 'undefined') ? heavyRovers.filter(hr => hr.isEsp32) : [])
     : ((typeof heavyRovers !== 'undefined') ? heavyRovers : []);
 
@@ -656,11 +656,11 @@ function renderMapSvg() {
   const scoutRoutes = activeFleet.filter(r => r.hazardId).map(r => {
     const h = byId(hazards, r.hazardId);
     if (!h) return '';
-    const telem = HYDRA_TELEMETRY.getRoverTelemetry(r.id);
+    const telem = AEGIS_TELEMETRY.getRoverTelemetry(r.id);
     const isTarget = isTargetFocused && focusedHazardId === r.hazardId;
     const isDimmed = isTargetFocused && !isTarget;
     const home = r.home || { x: 180, y: 520 };
-    const p1 = HYDRA_TELEMETRY.getControlPoint(home, h);
+    const p1 = AEGIS_TELEMETRY.getControlPoint(home, h);
 
     return `
     <g class="route-group" style="${isDimmed ? 'opacity:0.15;' : ''}">
@@ -672,12 +672,12 @@ function renderMapSvg() {
 
   // 10. Heavy Airlift Reinforcement Flight Corridors
   const heavyRoutes = activeHeavyFleet.filter(hr => hr.status === 'Deployed' || hr.status === 'Returning').map(hr => {
-    const telem = HYDRA_TELEMETRY.getRoverTelemetry(hr.id);
+    const telem = AEGIS_TELEMETRY.getRoverTelemetry(hr.id);
     if (!telem || !telem.targetPos) return '';
     const isReturn = telem.returnLeg;
     const p0 = isReturn ? telem.targetPos : (telem.homePos || hr.home || { x: 130, y: 560 });
     const p2 = isReturn ? (telem.homePos || hr.home || { x: 130, y: 560 }) : telem.targetPos;
-    const p1 = HYDRA_TELEMETRY.getControlPoint(p0, p2);
+    const p1 = AEGIS_TELEMETRY.getControlPoint(p0, p2);
 
     return `
     <g class="route-group heavy-airlift-corridor">
@@ -692,7 +692,7 @@ function renderMapSvg() {
 
   // 11. Scout Fleet Rover Markers
   const roverMarkers = activeFleet.map(r => {
-    const telem = HYDRA_TELEMETRY.getRoverTelemetry(r.id);
+    const telem = AEGIS_TELEMETRY.getRoverTelemetry(r.id);
     const isSelected = state.selectedRoverId === r.id;
     const isDeployed = r.status === 'Deployed' || r.status === 'On Site';
     const isTarget = isTargetFocused && focusedHazardId === r.hazardId;
@@ -725,7 +725,7 @@ function renderMapSvg() {
 
   // 12. Heavy-Lifting Air Rovers & Aerial Drones
   const heavyRoverMarkers = activeHeavyFleet.map(hr => {
-    const telem = HYDRA_TELEMETRY.getRoverTelemetry(hr.id);
+    const telem = AEGIS_TELEMETRY.getRoverTelemetry(hr.id);
     const isSelected = state.selectedHeavyRoverId === hr.id;
     const isDeployed = hr.status === 'Deployed' || hr.status === 'Returning';
     const isTarget = isTargetFocused && (focusedHazardId === hr.id || (telem && telem.dropId === focusedHazardId));
@@ -859,11 +859,11 @@ function renderMapSvg() {
 function renderRoverInfoPanel() {
   const r = state.selectedRoverId ? byId(rovers, state.selectedRoverId) : null;
   if (!r) return `<div class="rover-info-panel" id="roverInfoPanel"></div>`;
-  
-  const telem = HYDRA_TELEMETRY.getRoverTelemetry(r.id);
+
+  const telem = AEGIS_TELEMETRY.getRoverTelemetry(r.id);
   const h = r.hazardId ? byId(hazards, r.hazardId) : null;
   const isDeployed = r.status === 'Deployed' || r.status === 'On Site';
-  const etaStr = isDeployed ? HYDRA_TELEMETRY.formatEta(telem.etaSeconds) : '—';
+  const etaStr = isDeployed ? AEGIS_TELEMETRY.formatEta(telem.etaSeconds) : '—';
   const isEsp = !!r.isEsp32;
 
   return `
@@ -897,9 +897,9 @@ function renderMap() {
   const isLive = state.mode === 'live';
   const activeStation = (typeof getStationById === 'function')
     ? getStationById(state.selectedStationId || currentStationId || 'guwahati')
-    : HYDRA_STATIONS[0];
-  const chipLabel = isLive 
-    ? `Live Disaster Feeds &middot; ${activeStation.state}` 
+    : AEGIS_STATIONS[0];
+  const chipLabel = isLive
+    ? `Live Disaster Feeds &middot; ${activeStation.state}`
     : `${activeStation.shortName} &middot; ${activeStation.region}`;
 
   const zoomPct = Math.round((1000 / Math.max(1, currentViewBox.w)) * 100);

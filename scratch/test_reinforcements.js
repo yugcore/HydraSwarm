@@ -4,19 +4,19 @@ const path = require('path');
 // Mock browser globals
 global.window = {
   location: { origin: 'http://localhost:8080' },
-  addEventListener: () => {},
-  removeEventListener: () => {}
+  addEventListener: () => { },
+  removeEventListener: () => { }
 };
 global.document = {
-  documentElement: { setAttribute: () => {} },
-  addEventListener: () => {},
+  documentElement: { setAttribute: () => { } },
+  addEventListener: () => { },
   querySelector: () => null,
   querySelectorAll: () => [],
   getElementById: () => null
 };
 global.localStorage = {
   getItem: () => null,
-  setItem: () => {}
+  setItem: () => { }
 };
 global.performance = {
   now: () => Date.now()
@@ -42,7 +42,7 @@ files.forEach(f => {
   vm.runInThisContext(code, { filename: f });
 });
 
-console.log('--- RUNNING HYDRA REINFORCEMENTS AUTOMATED TEST SUITE ---');
+console.log('--- RUNNING AEGIS REINFORCEMENTS AUTOMATED TEST SUITE ---');
 
 // Test 1: Check SUPPLY_PAYLOADS Catalog
 console.assert(Array.isArray(SUPPLY_PAYLOADS) && SUPPLY_PAYLOADS.length === 6, 'SUPPLY_PAYLOADS should have 6 items');
@@ -70,18 +70,18 @@ console.log('✓ Test 4 Passed: Quick Arm All Medikits verified');
 
 // Test 5: Airdrop Mission Kinematics & Trajectory Simulation
 const targetZone = { x: 620, y: 340, label: 'Sector Alpha Flood Relief' };
-const dropRecord = HYDRA_TELEMETRY.startHeavyAirliftMission(testRover.id, targetZone, 'medikit_trauma');
+const dropRecord = AEGIS_TELEMETRY.startHeavyAirliftMission(testRover.id, targetZone, 'medikit_trauma');
 console.assert(dropRecord && dropRecord.id.startsWith('DROP-'), 'Drop record created in activeDropTargets');
 console.assert(testRover.status === 'Deployed', 'Rover status should be Deployed');
 
-const telem = HYDRA_TELEMETRY.getRoverTelemetry(testRover.id);
+const telem = AEGIS_TELEMETRY.getRoverTelemetry(testRover.id);
 console.assert(telem && telem.isHeavy && telem.altitude === 120, 'Heavy telemetry configured for 120m flight corridor');
-console.log(`✓ Test 5 Passed: Dispatched heavy airlift mission to ${targetZone.label} with ETA ${HYDRA_TELEMETRY.formatEta(telem.etaSeconds)}`);
+console.log(`✓ Test 5 Passed: Dispatched heavy airlift mission to ${targetZone.label} with ETA ${AEGIS_TELEMETRY.formatEta(telem.etaSeconds)}`);
 
 // Test 6: Advance Kinematics through Airdrop Delivery and Return Leg
 console.log('Simulating flight kinematics ticks (outbound -> arrival -> delivery -> return)...');
 for (let step = 0; step < 1500; step++) {
-  HYDRA_TELEMETRY.updateKinematics(0.2);
+  AEGIS_TELEMETRY.updateKinematics(0.2);
 }
 console.assert(dropRecord.status === 'delivered', `Airdrop should be delivered (current: ${dropRecord.status})`);
 console.assert(dropRecord.deliveredAt instanceof Date, 'deliveredAt timestamp should be set');
@@ -107,7 +107,7 @@ console.log('✓ Test 7 Passed: UI panels, Tab Navigation, and SVG map render cl
 // Test 8: Station Switching Roster Check across all 10 Indian Stations
 const stationIds = ['guwahati', 'chennai', 'kedarnath', 'puri', 'wayanad', 'mumbai', 'kolkata', 'bhuj', 'shimla', 'patna'];
 stationIds.forEach(sId => {
-  switchHydraStation(sId);
+  switchAegisStation(sId);
   console.assert(heavyRovers.length >= 3, `Station ${sId} should have at least 3 heavy rovers`);
   const onlyAir = heavyRovers.every(r => r.type === 'aerial');
   console.assert(onlyAir, `Station ${sId} heavy rovers must be strictly aerial`);
